@@ -1,0 +1,85 @@
+plugins {
+    id 'net.fabricmc.fabric-loom' version "${loom_version}"
+}
+
+base {
+    archivesName = 'quicify-fabric'
+}
+
+loom {
+    splitEnvironmentSourceSets()
+
+    mods {
+        "quicify" {
+            sourceSet sourceSets.main
+            sourceSet sourceSets.client
+            sourceSet project(':common').sourceSets.main
+        }
+    }
+
+    mixin {
+        defaultRefmapName.set('quicify-refmap.json')
+    }
+}
+
+dependencies {
+    minecraft "com.mojang:minecraft:${project.minecraft_version}"
+    implementation "net.fabricmc:fabric-loader:${project.loader_version}"
+    implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
+    implementation "me.fzzyhmstrs:fzzy_config:${project.fzzy_config_version}"
+    implementation project(':common')
+
+    implementation "io.netty:netty-codec-classes-quic:${project.netty_quic_version}"
+    include("io.netty:netty-codec-classes-quic:${project.netty_quic_version}") { transitive = false }
+    for (classifier in ['linux-x86_64', 'linux-aarch_64', 'osx-x86_64', 'osx-aarch_64', 'windows-x86_64']) {
+        def native_ = "io.netty:netty-codec-native-quic:${project.netty_quic_version}:${classifier}"
+        include(native_) { transitive = false }
+        runtimeOnly(native_) { transitive = false }
+        testRuntimeOnly(native_) { transitive = false }
+    }
+
+    implementation "com.github.luben:zstd-jni:${project.zstd_version}"
+    for (classifier in ['linux_amd64', 'linux_aarch64', 'darwin_x86_64', 'darwin_aarch64', 'win_amd64']) {
+        include("com.github.luben:zstd-jni:${project.zstd_version}:${classifier}") { transitive = false }
+    }
+
+    testImplementation "org.junit.jupiter:junit-jupiter:${project.junit_version}"
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+def probe = { String name, String main, String desc ->
+    tasks.register(name, JavaExec) {
+        group = 'quicify'
+        description = desc
+        classpath = sourceSets.test.runtimeClasspath
+        mainClass = main
+        workingDir = layout.buildDirectory.dir('quic-probe').get().asFile
+        doFirst { workingDir.mkdirs() }
+    }
+}
+
+probe('quicStatusProbe', 'zapmc.quicify.quic.QuicStatusProbe',
+        'Performs a vanilla server-status ping over QUIC against a running server')
+probe('quicLoginProbe', 'zapmc.quicify.quic.QuicLoginProbe',
+        'Runs the QUIC login auth path against a running server (online-mode)')
+
+processResources {
+    def version = project.version
+    inputs.property 'version', version
+
+    filesMatching('fabric.mod.json') {
+        expand 'version': version
+    }
+}
+
+tasks.named('jar') {
+    dependsOn ':common:jar'
+    from(zipTree(project(':common').jar.archiveFile)) {
+        exclude 'META-INF/**'
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
+}

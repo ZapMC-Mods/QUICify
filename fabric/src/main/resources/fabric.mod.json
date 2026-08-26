@@ -1,0 +1,46 @@
+{
+  "schemaVersion": 1,
+  "id": "quicify",
+  "version": "${version}",
+  "name": "QUICify",
+  "description": "Blazing fast QUIC transport for Minecraft networking",
+  "authors": [
+    "ZapMC"
+  ],
+  "contact": {
+    "homepage": "https://discord.gg/MursZT2zJ4",
+    "sources": "https://github.com/ZapMC-Mods/QUICify",
+    "issues": "https://github.com/ZapMC-Mods/QUICify/issues"
+  },
+  "license": "MIT",
+  "icon": "assets/quicify/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "zapmc.quicify.QuicifyFabric"
+    ],
+    "client": [
+      "zapmc.quicify.client.QuicifyClientFabric"
+    ]
+  },
+  "mixins": [
+    "quicify.mixins.json",
+    "quicify.cosmetic.mixins.json",
+    {
+      "config": "quicify.client.mixins.json",
+      "environment": "client"
+    },
+    {
+      "config": "quicify.client.cosmetic.mixins.json",
+      "environment": "client"
+    }
+  ],
+  "depends": {
+    "fabricloader": ">=0.19.3",
+    "minecraft": "~26.2",
+    "java": ">=25",
+    "fabric-api": ">=0.158.0",
+    "fzzy_config": ">=0.7.6",
+    "fabric-language-kotlin": ">=1.13.11"
+  }
+}

@@ -1,0 +1,37 @@
+subprojects {
+    group = rootProject.group
+    version = rootProject.version
+
+    repositories {
+        maven {
+            name = 'Fzzy'
+            url = 'https://maven.fzzyhmstrs.me/'
+        }
+        maven {
+            name = 'Terraformers'
+            url = 'https://maven.terraformersmc.com/releases/'
+        }
+    }
+
+    plugins.withId('java') {
+        java {
+            sourceCompatibility = JavaVersion.VERSION_25
+            targetCompatibility = JavaVersion.VERSION_25
+            withSourcesJar()
+        }
+
+        tasks.withType(JavaCompile).configureEach {
+            it.options.encoding = 'UTF-8'
+            it.options.release = 25
+        }
+
+        jar {
+            def projectName = rootProject.name
+            inputs.property 'projectName', projectName
+
+            from(rootProject.file('LICENSE')) {
+                rename { "${it}_$projectName" }
+            }
+        }
+    }
+}

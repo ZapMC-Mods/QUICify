@@ -1,0 +1,12 @@
+// Skeleton, not in settings.gradle. To activate: set neoforge_version /
+// neogradle_version in gradle.properties, uncomment the include, then:
+//
+// plugins { id 'net.neoforged.moddev' version "${neogradle_version}" }
+//
+// neoForge {
+//     version = project.neoforge_version
+//     runs { client { client() }; server { server() } }
+//     mods { quicify { sourceSet sourceSets.main } }
+// }
+//
+// dependencies { implementation project(':common') }

@@ -1,0 +1,24 @@
+modLoader = "javafml"
+loaderVersion = "[1,)"
+license = "MIT"
+
+[[mods]]
+modId = "quicify"
+version = "${version}"
+displayName = "QUICify"
+description = "Blazing fast QUIC transport for Minecraft networking"
+authors = "ZapMC"
+
+[[dependencies.quicify]]
+modId = "neoforge"
+type = "required"
+versionRange = "[26.2,)"
+ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.quicify]]
+modId = "minecraft"
+type = "required"
+versionRange = "[26.2,)"
+ordering = "NONE"
+side = "BOTH"

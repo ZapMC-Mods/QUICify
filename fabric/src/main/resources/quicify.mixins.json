@@ -1,0 +1,18 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "zapmc.quicify.mixin",
+  "compatibilityLevel": "JAVA_25",
+  "refmap": "quicify-refmap.json",
+  "mixins": [
+    "ConnectionAccessor",
+    "ConnectionMixin",
+    "ServerboundKeyPacketAccessor",
+    "ServerConnectionListenerMixin",
+    "ServerLoginPacketListenerImplMixin",
+    "ServerStatusMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
