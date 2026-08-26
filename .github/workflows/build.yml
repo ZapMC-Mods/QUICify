@@ -1,30 +1,97 @@
-# Automatically build the project and run any configured tests for every push
-# and submitted pull request. This can help catch issues that only occur on
-# certain platforms or Java versions, and provides a first line of defence
-# against bad commits.
+name: build & release
 
-name: build
-on: [pull_request, push]
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+env:
+  MODULES: fabric
 
 jobs:
-  build:
-    runs-on: ubuntu-24.04
+  release:
+    runs-on: ubuntu-latest
     steps:
       - name: checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+
+      - name: ensure tag is on main
+        run: |
+          git fetch --no-tags --quiet origin +refs/heads/main:refs/remotes/origin/main
+          if ! git merge-base --is-ancestor "$GITHUB_SHA" origin/main; then
+            echo "::error::tag ${GITHUB_REF_NAME} points at ${GITHUB_SHA}, which is not on main"
+            exit 1
+          fi
+
       - name: validate gradle wrapper
         uses: gradle/actions/wrapper-validation@v6
+
       - name: setup jdk
-        uses: actions/setup-java@v5
+        uses: actions/setup-java@v6
         with:
           java-version: '25'
-          distribution: 'microsoft'
+          distribution: 'temurin'
+          cache: 'gradle'
+
       - name: make gradle wrapper executable
         run: chmod +x ./gradlew
+
       - name: build
         run: ./gradlew build
+
+      - name: collect artifacts
+        run: |
+          mkdir -p release
+          for module in $MODULES; do
+            find "$module/build/libs" -maxdepth 1 -type f -name '*.jar' ! -name '*-sources.jar' -exec cp -v {} release/ \;
+          done
+          if [ -z "$(ls -A release)" ]; then
+            echo "::error::no artifact produced by: $MODULES"
+            exit 1
+          fi
+
       - name: capture build artifacts
         uses: actions/upload-artifact@v7
         with:
           name: Artifacts
-          path: build/libs/
+          path: release/
+
+      - name: build changelog
+        run: |
+          tag="$GITHUB_REF_NAME"
+          previous="$(git describe --tags --abbrev=0 "${tag}^" 2>/dev/null || true)"
+          if [ -n "$previous" ]; then
+            range="${previous}..${tag}"
+            printf 'Changes since %s:\n\n' "$previous" > CHANGELOG.md
+          else
+            range="$tag"
+            printf 'Initial release.\n\n' > CHANGELOG.md
+          fi
+          git log --no-merges --date-order --pretty=format:'- %s (%h)' "$range" >> CHANGELOG.md
+          printf '\n' >> CHANGELOG.md
+          cat CHANGELOG.md
+
+      - name: create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          tag="$GITHUB_REF_NAME"
+          case "$tag" in
+            *-*) prerelease='--prerelease' ;;
+            *)   prerelease='' ;;
+          esac
+          gh release create "$tag" \
+            --title "$tag" \
+            --notes-file CHANGELOG.md \
+            --verify-tag \
+            $prerelease \
+            release/*
