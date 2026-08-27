@@ -58,8 +58,8 @@ public final class QuicPathSampler {
         return sampled;
     }
 
-    public long rttNanos() {
-        return rttNanos;
+    public int rttMillis() {
+        return (int) Math.min(Math.round(rttNanos / 1_000_000.0), Integer.MAX_VALUE);
     }
 
     public long cwnd() {

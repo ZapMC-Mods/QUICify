@@ -92,7 +92,7 @@ public final class DebugEntryQuic implements DebugScreenEntry {
         long sent = sampler.sent();
         double loss = sent == 0L ? 0.0 : sampler.lost() * 100.0 / sent;
         return Component.translatable("quicify.debug.path",
-                String.format(Locale.ROOT, "%3d", Math.round(sampler.rttNanos() / 1_000_000.0)),
+                String.format(Locale.ROOT, "%3d", sampler.rttMillis()),
                 String.format(Locale.ROOT, "%4d", sampler.cwnd() / 1024L),
                 String.format(Locale.ROOT, "%4.1f", loss)).getString();
     }
