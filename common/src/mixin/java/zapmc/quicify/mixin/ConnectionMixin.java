@@ -2,6 +2,7 @@ package zapmc.quicify.mixin;
 
 import io.netty.channel.Channel;
 import io.netty.handler.codec.quic.QuicChannel;
+import net.minecraft.network.BandwidthDebugMonitor;
 import net.minecraft.network.Connection;
 import org.jspecify.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
@@ -24,6 +25,15 @@ public abstract class ConnectionMixin implements QuicifyConnection {
     @Shadow
     @Nullable
     private Channel channel;
+
+    @Shadow
+    @Nullable
+    private BandwidthDebugMonitor bandwidthDebugMonitor;
+
+    @Override
+    public @Nullable BandwidthDebugMonitor quicify$bandwidthDebugMonitor() {
+        return bandwidthDebugMonitor;
+    }
 
     @Unique
     @Nullable

@@ -1,6 +1,7 @@
 package zapmc.quicify.quic;
 
 import io.netty.handler.codec.quic.QuicChannel;
+import net.minecraft.network.BandwidthDebugMonitor;
 import org.jspecify.annotations.Nullable;
 
 import java.security.PublicKey;
@@ -20,4 +21,7 @@ public interface QuicifyConnection {
     PublicKey quicify$localCertificateKey();
 
     byte @Nullable [] quicify$peerCertificateKey();
+
+    @Nullable
+    BandwidthDebugMonitor quicify$bandwidthDebugMonitor();
 }

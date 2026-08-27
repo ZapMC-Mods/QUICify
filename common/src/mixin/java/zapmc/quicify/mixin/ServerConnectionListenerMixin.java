@@ -1,6 +1,5 @@
 package zapmc.quicify.mixin;
 
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerConnectionListener;
 import org.spongepowered.asm.mixin.Mixin;
@@ -42,7 +41,7 @@ public abstract class ServerConnectionListenerMixin {
         int quicPort = configuredPort == 0 ? port : configuredPort;
         try {
             if (quicify$transport == null) {
-                quicify$certificates = QuicCertManager.loadOrGenerate(FabricLoader.getInstance().getConfigDir().resolve("quicify"));
+                quicify$certificates = QuicCertManager.loadOrGenerate(Quicify.configDir().resolve("quicify"));
                 quicify$transport = new QuicServerTransport(quicify$certificates);
             }
             QuicDatagramTransport datagramTransport = QuicDatagramTransport.select(getServer().useNativeTransport());
