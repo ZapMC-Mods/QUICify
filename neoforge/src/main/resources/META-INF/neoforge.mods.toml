@@ -1,6 +1,7 @@
 modLoader = "javafml"
 loaderVersion = "[1,)"
 license = "MIT"
+issueTrackerURL = "https://github.com/ZapMC-Mods/QUICify/issues"
 
 [[mods]]
 modId = "quicify"
@@ -8,6 +9,26 @@ version = "${version}"
 displayName = "QUICify"
 description = "Blazing fast QUIC transport for Minecraft networking"
 authors = "ZapMC"
+displayURL = "https://github.com/ZapMC-Mods/QUICify"
+iconFile = "assets/quicify/icon.png"
+bannerFile = "assets/quicify/icon.png"
+# deprecated in favour of the two above, but it is the only one PrismLauncher reads
+logoFile = "assets/quicify/icon.png"
+
+[[mixins]]
+config = "quicify.neoforge.mixins.json"
+
+[[mixins]]
+config = "quicify.mixins.json"
+
+[[mixins]]
+config = "quicify.cosmetic.mixins.json"
+
+[[mixins]]
+config = "quicify.client.mixins.json"
+
+[[mixins]]
+config = "quicify.client.cosmetic.mixins.json"
 
 [[dependencies.quicify]]
 modId = "neoforge"
@@ -21,4 +42,11 @@ modId = "minecraft"
 type = "required"
 versionRange = "[26.2,)"
 ordering = "NONE"
+side = "BOTH"
+
+[[dependencies.quicify]]
+modId = "fzzy_config"
+type = "required"
+versionRange = "[0.7.6,)"
+ordering = "AFTER"
 side = "BOTH"

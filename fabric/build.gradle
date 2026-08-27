@@ -16,9 +16,14 @@ loom {
             sourceSet project(':common').sourceSets.main
         }
     }
+}
 
-    mixin {
-        defaultRefmapName.set('quicify-refmap.json')
+sourceSets {
+    main {
+        java.srcDir project(':common').file('src/mixin/java')
+    }
+    client {
+        java.srcDir project(':common').file('src/client/java')
     }
 }
 

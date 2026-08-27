@@ -26,7 +26,6 @@ import zapmc.quicify.QuicProtocol;
 import zapmc.quicify.Quicify;
 import zapmc.quicify.QuicifyConfig;
 import zapmc.quicify.QuicifyConfigs;
-import zapmc.quicify.mixin.ConnectionAccessor;
 import zapmc.quicify.quic.mux.QuicMux;
 import zapmc.quicify.quic.zstd.ZstdAvailability;
 
@@ -306,7 +305,7 @@ public final class QuicClientConnector {
 
         @Override
         public void handlerAdded(ChannelHandlerContext ctx) {
-            BandwidthDebugMonitor monitor = connection instanceof ConnectionAccessor accessor ? accessor.quicify$bandwidthDebugMonitor() : null;
+            BandwidthDebugMonitor monitor = connection instanceof QuicifyConnection duck ? duck.quicify$bandwidthDebugMonitor() : null;
             ChannelPipeline pipeline = ctx.pipeline().addLast("timeout", new ReadTimeoutHandler(30));
             Connection.configureSerialization(pipeline, PacketFlow.CLIENTBOUND, false, monitor);
             connection.configurePacketHandler(pipeline);

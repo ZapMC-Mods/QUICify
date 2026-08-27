@@ -11,6 +11,10 @@ subprojects {
             name = 'Terraformers'
             url = 'https://maven.terraformersmc.com/releases/'
         }
+        maven {
+            name = 'Nyon'
+            url = 'https://repo.nyon.dev/releases'
+        }
     }
 
     plugins.withId('java') {

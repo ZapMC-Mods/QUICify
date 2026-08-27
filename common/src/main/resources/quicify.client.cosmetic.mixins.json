@@ -3,7 +3,6 @@
   "minVersion": "0.8",
   "package": "zapmc.quicify.mixin.client",
   "compatibilityLevel": "JAVA_25",
-  "refmap": "quicify-refmap.json",
   "client": [
     "ConfigScreenMixin",
     "DebugScreenEntriesMixin",

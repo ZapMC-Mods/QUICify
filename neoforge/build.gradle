@@ -1,12 +1,103 @@
-// Skeleton, not in settings.gradle. To activate: set neoforge_version /
-// neogradle_version in gradle.properties, uncomment the include, then:
-//
-// plugins { id 'net.neoforged.moddev' version "${neogradle_version}" }
-//
-// neoForge {
-//     version = project.neoforge_version
-//     runs { client { client() }; server { server() } }
-//     mods { quicify { sourceSet sourceSets.main } }
-// }
-//
-// dependencies { implementation project(':common') }
+import net.neoforged.nfrtgradle.NeoFormRuntimeTask
+
+plugins {
+    id 'net.neoforged.moddev' version "${moddev_version}"
+}
+
+base {
+    archivesName = 'quicify-neoforge'
+}
+
+java {
+    toolchain {
+        languageVersion = JavaLanguageVersion.of(25)
+    }
+}
+
+def gameLauncher = javaToolchains.launcherFor(java.toolchain)
+
+tasks.withType(NeoFormRuntimeTask).configureEach {
+    javaExecutable = gameLauncher.map { it.executablePath.asFile.absolutePath }
+}
+
+tasks.withType(JavaExec).configureEach {
+    javaLauncher = gameLauncher
+}
+
+neoForge {
+    version = project.neoforge_version
+
+    runs {
+        client {
+            client()
+        }
+        server {
+            server()
+        }
+    }
+
+    mods {
+        quicify {
+            sourceSet sourceSets.main
+            sourceSet project(':common').sourceSets.main
+        }
+    }
+}
+
+sourceSets {
+    main {
+        java.srcDir project(':common').file('src/mixin/java')
+        java.srcDir project(':common').file('src/client/java')
+    }
+}
+
+configurations {
+    bundled
+}
+
+dependencies {
+    implementation project(':common')
+    implementation "me.fzzyhmstrs:fzzy_config:${project.fzzy_config_neoforge_version}"
+
+    implementation "io.netty:netty-codec-classes-quic:${project.netty_quic_version}"
+    // Merged into the jar rather than JarJar'd: FML loads embedded jars as plugins, in a layer above the
+    // game content classloader where Mixin never runs, and QuicheMixin has to reach these classes.
+    bundled("io.netty:netty-codec-classes-quic:${project.netty_quic_version}") { transitive = false }
+    for (classifier in ['linux-x86_64', 'linux-aarch_64', 'osx-x86_64', 'osx-aarch_64', 'windows-x86_64']) {
+        def native_ = "io.netty:netty-codec-native-quic:${project.netty_quic_version}:${classifier}"
+        bundled(native_) { transitive = false }
+        runtimeOnly(native_) { transitive = false }
+    }
+
+    // Same treatment, for a different reason: the five classifier jars carry the same classes plus one
+    // native each, and FML keeps a single module per package, so JarJar'ing all five leaves whichever one
+    // it picked as the only reachable native. Merged, one copy of the classes carries all five.
+    implementation "com.github.luben:zstd-jni:${project.zstd_version}"
+    for (classifier in ['linux_amd64', 'linux_aarch64', 'darwin_x86_64', 'darwin_aarch64', 'win_amd64']) {
+        bundled("com.github.luben:zstd-jni:${project.zstd_version}:${classifier}") { transitive = false }
+    }
+}
+
+processResources {
+    def version = project.version
+    inputs.property 'version', version
+
+    filesMatching('META-INF/neoforge.mods.toml') {
+        expand 'version': version
+    }
+}
+
+tasks.named('jar') {
+    dependsOn ':common:jar'
+    from(zipTree(project(':common').jar.archiveFile)) {
+        exclude 'META-INF/**'
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
+    from({ configurations.bundled.collect { zipTree(it) } }) {
+        exclude 'META-INF/MANIFEST.MF'
+        exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA'
+        exclude 'module-info.class'
+        exclude 'META-INF/versions/**/module-info.class'
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
+}

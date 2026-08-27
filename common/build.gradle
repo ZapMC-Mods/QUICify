@@ -5,6 +5,10 @@ plugins {
 dependencies {
     minecraft "com.mojang:minecraft:${project.minecraft_version}"
 
+    compileOnly "io.netty:netty-codec-classes-quic:${project.netty_quic_version}"
+    compileOnly "com.github.luben:zstd-jni:${project.zstd_version}"
+    compileOnly "me.fzzyhmstrs:fzzy_config:${project.fzzy_config_version}"
+
     testImplementation "org.junit.jupiter:junit-jupiter:${project.junit_version}"
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 }

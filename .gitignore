@@ -28,7 +28,7 @@ bin/
 
 *.DS_Store
 
-# fabric
+# fabric/neoforge dev server
 
 run/
 logs/
