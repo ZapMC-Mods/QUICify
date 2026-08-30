@@ -12,7 +12,12 @@ import java.util.concurrent.TimeUnit;
 
 public final class QuicTuning {
 
+    private static final int DATAGRAM_QUEUE_LENGTH = 1024;
+
     private static <B extends QuicCodecBuilder<B>> B applyToBoth(B builder) {
+        if (QuicifyConfigs.datagrams()) {
+            builder.datagram(DATAGRAM_QUEUE_LENGTH, DATAGRAM_QUEUE_LENGTH);
+        }
         return builder
                 .congestionControlAlgorithm(QuicifyConfigs.congestionControl())
                 .discoverPmtu(true)

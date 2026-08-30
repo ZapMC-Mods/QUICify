@@ -47,6 +47,26 @@ class PacketRoutingTableTest {
     }
 
     @Test
+    void datagramsAreClientboundPlayOnlyAndNeverCarryACheckpoint() {
+        PacketRoutingTable table = PacketRoutingTable.forProtocol(PROTOCOL);
+        assertNotNull(table);
+
+        int eligible = 0;
+        for (int id = 0; id < 256; id++) {
+            if (table.isDatagram(PacketRoutingTable.Phase.PLAY, true, id)) {
+                eligible++;
+                PacketCategory category = table.category(PacketRoutingTable.Phase.PLAY, true, id);
+                assertTrue(category == PacketCategory.AMBIENT || category == PacketCategory.REALTIME, "a droppable packet has to stay on AMBIENT or REALTIME, id " + id + " was " + category);
+                assertFalse(table.isBarrier(PacketRoutingTable.Phase.PLAY, true, id), "a barrier cannot be droppable, id " + id);
+            }
+            assertFalse(table.isDatagram(PacketRoutingTable.Phase.PLAY, false, id), "nothing serverbound is droppable, id " + id);
+            assertFalse(table.isDatagram(PacketRoutingTable.Phase.CONFIGURATION, true, id), "nothing in CONFIGURATION is droppable, id " + id);
+        }
+        assertEquals(8, eligible, "the committed table drifted from the datagram set in PacketRouting");
+        assertFalse(table.isDatagram(PacketRoutingTable.Phase.PLAY, true, -1));
+    }
+
+    @Test
     void anUnknownIdStaysOnTheMasterStream() {
         PacketRoutingTable table = PacketRoutingTable.forProtocol(PROTOCOL);
         assertNotNull(table);

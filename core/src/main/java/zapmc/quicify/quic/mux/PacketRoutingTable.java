@@ -78,7 +78,7 @@ public final class PacketRoutingTable {
         for (Map.Entry<String, JsonElement> entry : categories.entrySet()) {
             byId[Integer.parseInt(entry.getKey())] = PacketCategory.valueOf(entry.getValue().getAsString());
         }
-        return new Direction(byId, bits(json, "barriers"), bits(json, "playEntries"), bits(json, "terminals"));
+        return new Direction(byId, bits(json, "barriers"), bits(json, "playEntries"), bits(json, "terminals"), bits(json, "datagrams"));
     }
 
     private static BitSet bits(JsonObject json, String key) {
@@ -107,12 +107,17 @@ public final class PacketRoutingTable {
         return packetId >= 0 && direction(phase, clientbound).terminals.get(packetId);
     }
 
+    public boolean isDatagram(Phase phase, boolean clientbound, int packetId) {
+        return packetId >= 0 && direction(phase, clientbound).datagrams.get(packetId);
+    }
+
     public enum Phase {
         PLAY,
         CONFIGURATION
     }
 
-    private record Direction(PacketCategory[] byId, BitSet barriers, BitSet playEntries, BitSet terminals) {
+    private record Direction(PacketCategory[] byId, BitSet barriers, BitSet playEntries, BitSet terminals,
+                             BitSet datagrams) {
         PacketCategory category(int packetId) {
             if (packetId < 0 || packetId >= byId.length || byId[packetId] == null) {
                 return PacketCategory.CONTROL;

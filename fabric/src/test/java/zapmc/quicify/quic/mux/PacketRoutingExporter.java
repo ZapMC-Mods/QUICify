@@ -64,6 +64,7 @@ public final class PacketRoutingExporter {
         List<Integer> barriers = new ArrayList<>();
         List<Integer> playEntries = new ArrayList<>();
         List<Integer> terminals = new ArrayList<>();
+        List<Integer> datagrams = new ArrayList<>();
         List<String> unclassified = new ArrayList<>();
 
         byId.forEach((id, type) -> {
@@ -81,6 +82,9 @@ public final class PacketRoutingExporter {
             if (PacketRouting.isTerminal(type)) {
                 terminals.add(id);
             }
+            if (PacketRouting.isDatagram(type)) {
+                datagrams.add(id);
+            }
         });
 
         if (exhaustive && !unclassified.isEmpty()) {
@@ -92,6 +96,7 @@ public final class PacketRoutingExporter {
         phase.add("barriers", array(barriers));
         phase.add("playEntries", array(playEntries));
         phase.add("terminals", array(terminals));
+        phase.add("datagrams", array(datagrams));
         return phase;
     }
 

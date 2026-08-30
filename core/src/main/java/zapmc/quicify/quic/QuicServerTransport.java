@@ -14,6 +14,7 @@ import io.netty.util.concurrent.DefaultThreadFactory;
 import zapmc.quicify.QuicProtocol;
 import zapmc.quicify.Quicify;
 import zapmc.quicify.cert.QuicCertManager;
+import zapmc.quicify.quic.mux.DatagramLane;
 
 import java.net.InetSocketAddress;
 import java.util.Set;
@@ -116,6 +117,11 @@ public final class QuicServerTransport {
     private final class ConnectionTracker extends ChannelInboundHandlerAdapter {
 
         private static final io.netty.util.AttributeKey<java.net.SocketAddress> REMOTE = io.netty.util.AttributeKey.valueOf("quicify:remote");
+
+        @Override
+        public void handlerAdded(ChannelHandlerContext ctx) {
+            ctx.pipeline().addAfter(ctx.name(), DatagramLane.NAME, new DatagramLane());
+        }
 
         @Override
         public void channelActive(ChannelHandlerContext ctx) {

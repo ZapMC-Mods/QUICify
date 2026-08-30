@@ -16,6 +16,10 @@ public interface QuicifySettings {
         return true;
     }
 
+    default boolean datagrams() {
+        return true;
+    }
+
     default int compressionLevel() {
         return 3;
     }

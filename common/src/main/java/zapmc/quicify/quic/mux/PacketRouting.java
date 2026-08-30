@@ -18,6 +18,8 @@ public final class PacketRouting {
 
     private static final Set<PacketType<?>> BARRIERS = new ReferenceOpenHashSet<>();
 
+    private static final Set<PacketType<?>> DATAGRAMS = new ReferenceOpenHashSet<>();
+
     private static final Set<PacketType<?>> PLAY_ENTRIES = Set.of(
             GamePacketTypes.CLIENTBOUND_LOGIN,
             GamePacketTypes.CLIENTBOUND_RESPAWN
@@ -235,6 +237,17 @@ public final class PacketRouting {
                 GamePacketTypes.CLIENTBOUND_STOP_SOUND
         );
 
+        datagram(
+                GamePacketTypes.CLIENTBOUND_LEVEL_PARTICLES,
+                GamePacketTypes.CLIENTBOUND_SOUND,
+                GamePacketTypes.CLIENTBOUND_SOUND_ENTITY,
+                GamePacketTypes.CLIENTBOUND_LEVEL_EVENT,
+                GamePacketTypes.CLIENTBOUND_SET_TIME,
+                GamePacketTypes.CLIENTBOUND_ANIMATE,
+                GamePacketTypes.CLIENTBOUND_HURT_ANIMATION,
+                GamePacketTypes.CLIENTBOUND_DAMAGE_EVENT
+        );
+
         world(
                 GamePacketTypes.SERVERBOUND_CHUNK_BATCH_RECEIVED,
                 GamePacketTypes.SERVERBOUND_JIGSAW_GENERATE,
@@ -283,6 +296,10 @@ public final class PacketRouting {
         return type != null && TERMINALS.contains(type);
     }
 
+    public static boolean isDatagram(@Nullable PacketType<?> type) {
+        return type != null && DATAGRAMS.contains(type);
+    }
+
     public static BarrierClassifier.@Nullable Barrier barrierOf(Object msg) {
         if (!(msg instanceof net.minecraft.network.protocol.Packet<?> packet)) {
             return null;
@@ -325,5 +342,20 @@ public final class PacketRouting {
 
     private static void world(PacketType<?>... types) {
         put(PacketCategory.WORLD, types);
+    }
+
+    private static void datagram(PacketType<?>... types) {
+        for (PacketType<?> type : types) {
+            PacketCategory category = CATEGORIES.get(type);
+            if (category != PacketCategory.AMBIENT && category != PacketCategory.REALTIME) {
+                throw new IllegalStateException("datagram entry " + type + " must be routed to AMBIENT or REALTIME first, was " + category);
+            }
+            if (BARRIERS.contains(type)) {
+                throw new IllegalStateException("barrier " + type + " cannot travel on a datagram");
+            }
+            if (!DATAGRAMS.add(type)) {
+                throw new IllegalStateException("duplicate datagram entry for " + type);
+            }
+        }
     }
 }

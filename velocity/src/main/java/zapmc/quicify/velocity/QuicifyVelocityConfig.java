@@ -16,6 +16,7 @@ public final class QuicifyVelocityConfig implements QuicifySettings {
     private final boolean enabled;
     private final int serverPort;
     private final boolean multiplexing;
+    private final boolean datagrams;
     private final int compressionLevel;
     private final int compressionWindowLog;
     private final QuicCongestionControlAlgorithm congestionControl;
@@ -25,6 +26,7 @@ public final class QuicifyVelocityConfig implements QuicifySettings {
         enabled = config.getOrElse("enabled", true);
         serverPort = clamp(config.getIntOrElse("serverPort", 0), 0, 65535, 0);
         multiplexing = config.getOrElse("multiplexing", true);
+        datagrams = config.getOrElse("datagrams", true);
         compressionLevel = clamp(config.getIntOrElse("compressionLevel", 3), 1, 22, 3);
         compressionWindowLog = clamp(config.getIntOrElse("compressionWindowLog", 18), 10, 27, 18);
         congestionControl = algorithm(config.getOrElse("congestionControl", "BBR"));
@@ -60,6 +62,7 @@ public final class QuicifyVelocityConfig implements QuicifySettings {
         put(config, "enabled", true, "Enable or disable QUICify");
         put(config, "serverPort", 0, "UDP port of the QUIC listener, 0 reuses the proxy's TCP port (recommended)");
         put(config, "multiplexing", true, "Spread packets over several QUIC streams so chunk transfers stop delaying chat and movement");
+        put(config, "datagrams", true, "Send sounds, particles and animations as unreliable QUIC datagrams so a lost one is never retransmitted or blocking");
         put(config, "compressionLevel", 3, "zstd compression level used when sending, higher trades CPU for a better ratio");
         put(config, "compressionWindowLog", 18, "Base 2 logarithm of the compression history kept per stream, higher trades memory for a better ratio");
         put(config, "congestionControl", "BBR", "Congestion control algorithm used, BBR or CUBIC");
@@ -99,6 +102,11 @@ public final class QuicifyVelocityConfig implements QuicifySettings {
     @Override
     public boolean multiplexing() {
         return multiplexing;
+    }
+
+    @Override
+    public boolean datagrams() {
+        return datagrams;
     }
 
     @Override

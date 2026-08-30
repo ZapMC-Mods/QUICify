@@ -26,6 +26,9 @@ public final class StreamRouter extends ChannelOutboundHandlerAdapter {
     @Override
     public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) {
         if (msg instanceof ByteBuf buf) {
+            if (tagger.datagramEligible() && session.routeDatagram(buf, promise)) {
+                return;
+            }
             PacketCategory category = tagger.current();
             if (category != null && category.secondary() && session.route(category, buf, promise)) {
                 return;
@@ -37,6 +40,7 @@ public final class StreamRouter extends ChannelOutboundHandlerAdapter {
     @Override
     public void flush(ChannelHandlerContext ctx) {
         session.flushSecondaries();
+        session.flushDatagrams();
         ctx.flush();
     }
 }

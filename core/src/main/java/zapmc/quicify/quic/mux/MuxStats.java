@@ -4,6 +4,7 @@ import io.netty.handler.codec.quic.QuicChannel;
 import io.netty.util.AttributeKey;
 import org.jspecify.annotations.Nullable;
 
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicLongArray;
 
 public final class MuxStats {
@@ -19,6 +20,12 @@ public final class MuxStats {
     private final AtomicLongArray rxPackets = new AtomicLongArray(COUNT);
 
     private final AtomicLongArray streamIds = new AtomicLongArray(COUNT);
+
+    private final AtomicLong dgramTx = new AtomicLong();
+
+    private final AtomicLong dgramRx = new AtomicLong();
+
+    private final AtomicLong dgramDropped = new AtomicLong();
 
     private final @Nullable RxMeter bandwidth;
 
@@ -41,6 +48,18 @@ public final class MuxStats {
 
     void recordRx(PacketCategory category) {
         rxPackets.incrementAndGet(category.ordinal());
+    }
+
+    void recordDatagramTx() {
+        dgramTx.incrementAndGet();
+    }
+
+    void recordDatagramRx() {
+        dgramRx.incrementAndGet();
+    }
+
+    long recordDatagramDropped() {
+        return dgramDropped.incrementAndGet();
     }
 
     void recordWireBytes(int bytes) {
@@ -79,5 +98,17 @@ public final class MuxStats {
 
     public long streamId(PacketCategory category) {
         return streamIds.get(category.ordinal());
+    }
+
+    public long datagramTx() {
+        return dgramTx.get();
+    }
+
+    public long datagramRx() {
+        return dgramRx.get();
+    }
+
+    public long datagramDropped() {
+        return dgramDropped.get();
     }
 }

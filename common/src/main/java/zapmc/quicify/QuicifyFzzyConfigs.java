@@ -43,6 +43,11 @@ public final class QuicifyFzzyConfigs implements QuicifySettings {
     }
 
     @Override
+    public boolean datagrams() {
+        return INSTANCE.datagrams.get();
+    }
+
+    @Override
     public int compressionLevel() {
         return INSTANCE.compressionLevel.get();
     }

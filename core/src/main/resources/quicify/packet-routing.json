@@ -160,6 +160,16 @@
       "terminals": [
         32,
         129
+      ],
+      "datagrams": [
+        2,
+        25,
+        42,
+        46,
+        47,
+        113,
+        116,
+        117
       ]
     },
     "PLAY:SERVERBOUND": {
@@ -238,7 +248,8 @@
         16
       ],
       "playEntries": [],
-      "terminals": []
+      "terminals": [],
+      "datagrams": []
     },
     "CONFIGURATION:CLIENTBOUND": {
       "categories": {
@@ -265,7 +276,8 @@
       "terminals": [
         2,
         11
-      ]
+      ],
+      "datagrams": []
     },
     "CONFIGURATION:SERVERBOUND": {
       "categories": {
@@ -279,7 +291,8 @@
       },
       "barriers": [],
       "playEntries": [],
-      "terminals": []
+      "terminals": [],
+      "datagrams": []
     }
   }
 }

@@ -27,6 +27,7 @@ import zapmc.quicify.Quicify;
 import zapmc.quicify.QuicifyConfig;
 import zapmc.quicify.QuicifyConfigs;
 import zapmc.quicify.QuicifyFzzyConfigs;
+import zapmc.quicify.quic.mux.DatagramLane;
 import zapmc.quicify.quic.mux.QuicMux;
 import zapmc.quicify.quic.zstd.ZstdAvailability;
 
@@ -154,7 +155,7 @@ public final class QuicClientConnector {
 
             QuicChannel quicChannel = QuicChannel.newBootstrap(datagramChannel)
                     .remoteAddress(address)
-                    .handler(new ChannelInboundHandlerAdapter())
+                    .handler(new DatagramLane())
                     .connect()
                     .get(remainingMillis(deadlineNanos), TimeUnit.MILLISECONDS);
 

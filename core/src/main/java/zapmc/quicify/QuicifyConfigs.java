@@ -28,6 +28,10 @@ public final class QuicifyConfigs {
         return settings.multiplexing();
     }
 
+    public static boolean datagrams() {
+        return settings.datagrams();
+    }
+
     public static int compressionLevel() {
         return settings.compressionLevel();
     }

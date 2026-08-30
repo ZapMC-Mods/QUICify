@@ -6,4 +6,8 @@ import org.jspecify.annotations.Nullable;
 public interface CategorySource {
 
     @Nullable PacketCategory current();
+
+    default boolean datagramEligible() {
+        return false;
+    }
 }

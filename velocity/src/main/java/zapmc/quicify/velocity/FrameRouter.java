@@ -52,6 +52,10 @@ public final class FrameRouter extends ChannelOutboundHandlerAdapter {
             return;
         }
 
+        if (!insideBundle && routing.isDatagram(frame) && session.routeDatagram(frame, promise)) {
+            return;
+        }
+
         PacketCategory category = insideBundle ? PacketCategory.CONTROL : routing.category(frame);
         if (category.secondary() && session.route(category, frame, promise)) {
             return;
@@ -62,6 +66,7 @@ public final class FrameRouter extends ChannelOutboundHandlerAdapter {
     @Override
     public void flush(ChannelHandlerContext ctx) {
         session.flushSecondaries();
+        session.flushDatagrams();
         ctx.flush();
     }
 }

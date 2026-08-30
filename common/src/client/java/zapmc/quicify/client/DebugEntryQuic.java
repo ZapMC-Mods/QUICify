@@ -40,6 +40,14 @@ public final class DebugEntryQuic implements DebugScreenEntry {
 
     private final long[] rxRate = new long[CATEGORIES.length];
 
+    private long lastDgramTx;
+
+    private long lastDgramRx;
+
+    private long dgramTxRate;
+
+    private long dgramRxRate;
+
     private @Nullable MuxStats sampled;
 
     private long sampledAt;
@@ -70,6 +78,9 @@ public final class DebugEntryQuic implements DebugScreenEntry {
                     continue;
                 }
                 lines.add(row(stats, category));
+            }
+            if (session != null) {
+                lines.add(String.format(Locale.ROOT, "DGRAM #-, %d tx, %d rx", dgramTxRate, dgramRxRate));
             }
         }
         displayer.addToGroup(GROUP, lines);
@@ -115,6 +126,10 @@ public final class DebugEntryQuic implements DebugScreenEntry {
                 txRate[i] = 0L;
                 rxRate[i] = 0L;
             }
+            lastDgramTx = stats.datagramTx();
+            lastDgramRx = stats.datagramRx();
+            dgramTxRate = 0L;
+            dgramRxRate = 0L;
             return;
         }
         long elapsed = now - sampledAt;
@@ -130,5 +145,11 @@ public final class DebugEntryQuic implements DebugScreenEntry {
             lastTx[i] = tx;
             lastRx[i] = rx;
         }
+        long dgramTx = stats.datagramTx();
+        long dgramRx = stats.datagramRx();
+        dgramTxRate = (dgramTx - lastDgramTx) * 1000L / elapsed;
+        dgramRxRate = (dgramRx - lastDgramRx) * 1000L / elapsed;
+        lastDgramTx = dgramTx;
+        lastDgramRx = dgramRx;
     }
 }

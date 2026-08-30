@@ -50,6 +50,10 @@ public final class QuicMuxSession {
 
     private int queuedBytes;
 
+    private int generation;
+
+    private boolean datagramsDirty;
+
     private boolean pendingArm;
 
     private @Nullable Runnable drainListener;
@@ -126,6 +130,14 @@ public final class QuicMuxSession {
         return state.name();
     }
 
+    public boolean active() {
+        return state == State.ACTIVE;
+    }
+
+    public int generation() {
+        return generation;
+    }
+
     public boolean disabled() {
         return state == State.DISABLED || state == State.CLOSED;
     }
@@ -198,6 +210,29 @@ public final class QuicMuxSession {
         if (state == State.IDLE) {
             state = State.ARMED;
             maybeActivate();
+        }
+    }
+
+    public boolean routeDatagram(ByteBuf framed, ChannelPromise promise) {
+        if (state != State.ACTIVE) {
+            return false;
+        }
+        ByteBuf datagram = DatagramLane.wrap(quicChannel, framed, generation);
+        if (datagram == null) {
+            return false;
+        }
+        framed.release();
+        promise.trySuccess();
+        datagramsDirty = true;
+        stats.recordDatagramTx();
+        quicChannel.write(datagram, quicChannel.voidPromise());
+        return true;
+    }
+
+    public void flushDatagrams() {
+        if (datagramsDirty) {
+            datagramsDirty = false;
+            quicChannel.flush();
         }
     }
 
@@ -320,6 +355,7 @@ public final class QuicMuxSession {
             }
         }
         readyCount = 0;
+        generation++;
         state = pendingArm ? State.ARMED : State.IDLE;
         pendingArm = false;
         openSecondaries();

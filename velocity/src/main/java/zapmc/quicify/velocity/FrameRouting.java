@@ -88,6 +88,12 @@ public final class FrameRouting {
         return table.category(phase, clientbound, id);
     }
 
+    public boolean isDatagram(ByteBuf frame) {
+        PacketRoutingTable.Phase phase = phase();
+        int id = peekId(frame);
+        return phase != null && id >= 0 && table.isDatagram(phase, clientbound, id);
+    }
+
     public boolean isBundleDelimiter(ByteBuf frame) {
         if (phase() != PacketRoutingTable.Phase.PLAY) {
             return false;

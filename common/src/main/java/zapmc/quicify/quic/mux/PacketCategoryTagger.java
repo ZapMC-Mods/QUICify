@@ -15,6 +15,8 @@ public final class PacketCategoryTagger extends ChannelOutboundHandlerAdapter im
 
     private @Nullable PacketCategory current;
 
+    private boolean datagramEligible;
+
     public PacketCategoryTagger(QuicMuxSession session) {
         this.session = session;
     }
@@ -22,6 +24,11 @@ public final class PacketCategoryTagger extends ChannelOutboundHandlerAdapter im
     @Override
     public @Nullable PacketCategory current() {
         return current;
+    }
+
+    @Override
+    public boolean datagramEligible() {
+        return datagramEligible;
     }
 
     @Override
@@ -38,11 +45,14 @@ public final class PacketCategoryTagger extends ChannelOutboundHandlerAdapter im
         }
 
         PacketCategory previous = current;
+        boolean previousEligible = datagramEligible;
         current = PacketRouting.categoryOf(type);
+        datagramEligible = PacketRouting.isDatagram(type);
         try {
             ctx.write(msg, promise);
         } finally {
             current = previous;
+            datagramEligible = previousEligible;
         }
 
         if (barrier) {
