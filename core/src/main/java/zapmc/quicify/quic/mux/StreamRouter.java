@@ -11,9 +11,9 @@ public final class StreamRouter extends ChannelOutboundHandlerAdapter {
 
     private final QuicMuxSession session;
 
-    private final PacketCategoryTagger tagger;
+    private final CategorySource tagger;
 
-    public StreamRouter(QuicMuxSession session, PacketCategoryTagger tagger) {
+    public StreamRouter(QuicMuxSession session, CategorySource tagger) {
         this.session = session;
         this.tagger = tagger;
     }

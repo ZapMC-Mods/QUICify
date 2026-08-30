@@ -3,13 +3,13 @@ package zapmc.quicify.quic.mux;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 
-final class FrameCounter extends ChannelInboundHandlerAdapter {
+public final class FrameCounter extends ChannelInboundHandlerAdapter {
 
-    static final String NAME = "quicify_count";
+    public static final String NAME = "quicify_count";
 
     private final MuxStats stats;
 
-    FrameCounter(MuxStats stats) {
+    public FrameCounter(MuxStats stats) {
         this.stats = stats;
     }
 

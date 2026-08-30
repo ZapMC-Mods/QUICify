@@ -9,8 +9,8 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.handler.codec.ByteToMessageCodec;
 import io.netty.handler.codec.DecoderException;
 import io.netty.handler.codec.EncoderException;
-import net.minecraft.network.VarInt;
 import org.jspecify.annotations.Nullable;
+import zapmc.quicify.quic.Varints;
 
 import java.nio.ByteBuffer;
 import java.util.List;
@@ -35,13 +35,13 @@ public final class ZstdStreamCodec extends ByteToMessageCodec<ByteBuf> {
 
     private static int readVarInt(ByteBuf in) {
         int value = 0;
-        for (int i = 0; i < VarInt.MAX_VARINT_SIZE; i++) {
+        for (int i = 0; i < Varints.MAX_VARINT_SIZE; i++) {
             if (!in.isReadable()) {
                 return INCOMPLETE;
             }
             byte read = in.readByte();
             value |= (read & 127) << (i * 7);
-            if (!VarInt.hasContinuationBit(read)) {
+            if (!Varints.hasContinuationBit(read)) {
                 return value;
             }
         }
@@ -94,7 +94,7 @@ public final class ZstdStreamCodec extends ByteToMessageCodec<ByteBuf> {
         }
         ZstdCompressCtx cctx = compressor;
         if (length < params.threshold() || cctx == null) {
-            VarInt.write(out, length << 1 | RAW);
+            Varints.write(out, length << 1 | RAW);
             out.writeBytes(msg, msg.readerIndex(), length);
             return;
         }
@@ -122,9 +122,9 @@ public final class ZstdStreamCodec extends ByteToMessageCodec<ByteBuf> {
                 compressed.ensureWritable(compressed.capacity());
             }
 
-            int payload = VarInt.getByteSize(length) + compressed.readableBytes();
-            VarInt.write(out, payload << 1);
-            VarInt.write(out, length);
+            int payload = Varints.getByteSize(length) + compressed.readableBytes();
+            Varints.write(out, payload << 1);
+            Varints.write(out, length);
             out.writeBytes(compressed);
         } finally {
             compressed.release();
@@ -157,7 +157,7 @@ public final class ZstdStreamCodec extends ByteToMessageCodec<ByteBuf> {
         }
 
         int frameEnd = in.readerIndex() + frameLength;
-        int uncompressedLength = VarInt.read(in);
+        int uncompressedLength = Varints.read(in);
         if (in.readerIndex() > frameEnd) {
             throw new DecoderException("Truncated zstd frame header");
         }

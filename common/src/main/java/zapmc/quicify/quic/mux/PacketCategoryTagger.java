@@ -7,7 +7,7 @@ import net.minecraft.network.protocol.Packet;
 import net.minecraft.network.protocol.PacketType;
 import org.jspecify.annotations.Nullable;
 
-public final class PacketCategoryTagger extends ChannelOutboundHandlerAdapter {
+public final class PacketCategoryTagger extends ChannelOutboundHandlerAdapter implements CategorySource {
 
     public static final String NAME = "quicify_tag";
 
@@ -19,7 +19,8 @@ public final class PacketCategoryTagger extends ChannelOutboundHandlerAdapter {
         this.session = session;
     }
 
-    @Nullable PacketCategory current() {
+    @Override
+    public @Nullable PacketCategory current() {
         return current;
     }
 

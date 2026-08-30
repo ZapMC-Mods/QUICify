@@ -10,7 +10,7 @@ public class QuicifyFabric implements ModInitializer {
     @Override
     public void onInitialize() {
         Quicify.init(FabricLoader.getInstance().getConfigDir());
-        QuicifyConfigs.INSTANCE.getId();
+        QuicifyFzzyConfigs.install();
         QuicAvailability.check();
         ZstdAvailability.check();
     }

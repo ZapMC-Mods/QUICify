@@ -32,6 +32,8 @@ public final class QuicMuxSession {
 
     private final MuxStats stats;
 
+    private final String injectionPoint;
+
     private final QuicStreamChannel[] secondaries = new QuicStreamChannel[PacketCategory.SECONDARY_COUNT];
 
     private final boolean[] ready = new boolean[PacketCategory.SECONDARY_COUNT];
@@ -54,7 +56,8 @@ public final class QuicMuxSession {
 
     private @Nullable ChannelHandlerContext routerContext;
 
-    public QuicMuxSession(QuicChannel quicChannel, QuicStreamChannel master, boolean clientSide, MuxStats stats) {
+    public QuicMuxSession(QuicChannel quicChannel, QuicStreamChannel master, boolean clientSide, MuxStats stats, String injectionPoint) {
+        this.injectionPoint = injectionPoint;
         this.quicChannel = quicChannel;
         this.master = master;
         this.clientSide = clientSide;
@@ -85,7 +88,7 @@ public final class QuicMuxSession {
         return channel == null ? null : channel.attr(KEY).get();
     }
 
-    void bindRouter(ChannelHandlerContext ctx) {
+    public void bindRouter(ChannelHandlerContext ctx) {
         this.routerContext = ctx;
     }
 
@@ -109,6 +112,10 @@ public final class QuicMuxSession {
 
     public QuicStreamChannel master() {
         return master;
+    }
+
+    public String injectionPoint() {
+        return injectionPoint;
     }
 
     public MuxStats stats() {

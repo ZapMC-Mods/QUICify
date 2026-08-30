@@ -1,0 +1,173 @@
+plugins {
+    id 'java'
+}
+
+base {
+    archivesName = 'quicify-velocity'
+}
+
+configurations {
+    bundled
+}
+
+def proxyJarName = "velocity-${project.velocity_version}-${project.velocity_build}.jar"
+def proxyJar = layout.buildDirectory.file("velocity/${proxyJarName}")
+
+def downloadVelocityProxy = tasks.register('downloadVelocityProxy') {
+    group = 'quicify'
+    description = 'Downloads the Velocity proxy jar, the only place its internal classes are published'
+
+    def sha256 = project.velocity_proxy_sha256
+    def source = "https://fill-data.papermc.io/v1/objects/${sha256}/${proxyJarName}"
+    def target = proxyJar
+
+    inputs.property 'source', source
+    outputs.file target
+
+    doLast {
+        File file = target.get().asFile
+        file.parentFile.mkdirs()
+        new URI(source).toURL().withInputStream { input ->
+            file.withOutputStream { output -> output << input }
+        }
+        String actual = java.security.MessageDigest.getInstance('SHA-256')
+                .digest(file.bytes)
+                .encodeHex()
+                .toString()
+        if (actual != sha256) {
+            file.delete()
+            throw new GradleException("checksum mismatch for ${proxyJarName}: expected ${sha256}, got ${actual}")
+        }
+    }
+}
+
+def generateBuildConstants = tasks.register('generateBuildConstants') {
+    group = 'quicify'
+
+    def version = project.version
+    def outputDir = layout.buildDirectory.dir('generated/sources/buildConstants/java')
+
+    inputs.property 'version', version
+    outputs.dir outputDir
+
+    doLast {
+        File target = new File(outputDir.get().asFile, 'zapmc/quicify/velocity/BuildConstants.java')
+        target.parentFile.mkdirs()
+        target.text = """package zapmc.quicify.velocity;
+
+public final class BuildConstants {
+    public static final String VERSION = "${version}";
+
+    private BuildConstants() {
+    }
+}
+"""
+    }
+}
+
+sourceSets {
+    main {
+        java.srcDir generateBuildConstants
+    }
+}
+
+dependencies {
+    implementation project(':core')
+
+    compileOnly "com.velocitypowered:velocity-api:${project.velocity_version}"
+    annotationProcessor "com.velocitypowered:velocity-api:${project.velocity_version}"
+    compileOnly files(proxyJar) {
+        builtBy downloadVelocityProxy
+    }
+
+    compileOnly "io.netty:netty-codec-classes-quic:${project.velocity_netty_quic_version}"
+    compileOnly "com.github.luben:zstd-jni:${project.zstd_version}"
+    compileOnly "com.electronwill.night-config:toml:${project.night_config_version}"
+
+    bundled("io.netty:netty-codec-classes-quic:${project.velocity_netty_quic_version}") { transitive = false }
+    for (classifier in ['linux-x86_64', 'linux-aarch_64', 'osx-x86_64', 'osx-aarch_64', 'windows-x86_64']) {
+        bundled("io.netty:netty-codec-native-quic:${project.velocity_netty_quic_version}:${classifier}") { transitive = false }
+    }
+    for (classifier in ['linux_amd64', 'linux_aarch64', 'darwin_x86_64', 'darwin_aarch64', 'win_amd64']) {
+        bundled("com.github.luben:zstd-jni:${project.zstd_version}:${classifier}") { transitive = false }
+    }
+
+    testImplementation project(':core')
+    testRuntimeOnly files(proxyJar) {
+        builtBy downloadVelocityProxy
+    }
+    testImplementation "com.google.code.gson:gson:${project.gson_version}"
+    testImplementation "org.slf4j:slf4j-api:${project.slf4j_version}"
+    testImplementation "io.netty:netty-codec-classes-quic:${project.velocity_netty_quic_version}"
+    testImplementation "com.github.luben:zstd-jni:${project.zstd_version}"
+    testImplementation "org.junit.jupiter:junit-jupiter:${project.junit_version}"
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}
+
+def runDir = layout.buildDirectory.dir('run')
+
+tasks.register('runProxy', JavaExec) {
+    group = 'quicify'
+    description = 'Runs the downloaded Velocity proxy with the freshly built plugin'
+
+    dependsOn downloadVelocityProxy, tasks.named('jar')
+
+    classpath = files(proxyJar)
+    mainClass = 'com.velocitypowered.proxy.Velocity'
+    workingDir = runDir.get().asFile
+    standardInput = System.in
+
+    doFirst {
+        File dir = runDir.get().asFile
+        File plugins = new File(dir, 'plugins')
+        plugins.mkdirs()
+        plugins.listFiles({ File f -> f.name.startsWith('quicify-velocity') } as FileFilter)
+                .each { it.delete() }
+        File built = tasks.named('jar').get().archiveFile.get().asFile
+        new File(plugins, built.name).bytes = built.bytes
+
+        File config = new File(dir, 'velocity.toml')
+        if (!config.exists()) {
+            config.text = '''config-version = "2.7"
+bind = "0.0.0.0:25577"
+motd = "QUICify dev proxy"
+show-max-players = 20
+online-mode = true
+player-info-forwarding-mode = "none"
+forwarding-secret-file = "forwarding.secret"
+
+[servers]
+dev = "127.0.0.1:25565"
+try = ["dev"]
+
+[forced-hosts]
+
+[advanced]
+compression-threshold = 256
+'''
+        }
+        File secret = new File(dir, 'forwarding.secret')
+        if (!secret.exists()) {
+            secret.text = UUID.randomUUID().toString()
+        }
+    }
+}
+
+tasks.named('jar') {
+    dependsOn ':core:jar'
+    from(zipTree(project(':core').jar.archiveFile)) {
+        exclude 'META-INF/**'
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
+    from({ configurations.bundled.collect { zipTree(it) } }) {
+        exclude 'META-INF/MANIFEST.MF'
+        exclude 'META-INF/*.SF', 'META-INF/*.DSA', 'META-INF/*.RSA'
+        exclude 'module-info.class'
+        exclude 'META-INF/versions/**/module-info.class'
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
+}

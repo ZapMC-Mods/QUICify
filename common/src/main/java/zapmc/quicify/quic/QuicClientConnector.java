@@ -26,6 +26,7 @@ import zapmc.quicify.QuicProtocol;
 import zapmc.quicify.Quicify;
 import zapmc.quicify.QuicifyConfig;
 import zapmc.quicify.QuicifyConfigs;
+import zapmc.quicify.QuicifyFzzyConfigs;
 import zapmc.quicify.quic.mux.QuicMux;
 import zapmc.quicify.quic.zstd.ZstdAvailability;
 
@@ -50,18 +51,18 @@ public final class QuicClientConnector {
     }
 
     public static ChannelFuture connectOrFallback(InetSocketAddress address, Connection connection, QuicDatagramTransport transport, Supplier<ChannelFuture> vanillaFallback) {
-        if (!QuicifyConfigs.enabled() || QuicifyConfigs.connectMode() == QuicifyConfig.ConnectMode.FORCE_TCP) {
+        if (!QuicifyConfigs.enabled() || QuicifyFzzyConfigs.connectMode() == QuicifyConfig.ConnectMode.FORCE_TCP) {
             return vanillaFallback.get();
         }
 
         if (!QuicAvailability.check() || !ZstdAvailability.check()) {
-            if (QuicifyConfigs.connectMode() == QuicifyConfig.ConnectMode.FORCE_QUIC) {
+            if (QuicifyFzzyConfigs.connectMode() == QuicifyConfig.ConnectMode.FORCE_QUIC) {
                 throw describedFailure("QUIC or zstd native library unavailable and connectMode is FORCE_QUIC", null);
             }
             return vanillaFallback.get();
         }
 
-        if (QuicifyConfigs.connectMode() != QuicifyConfig.ConnectMode.FORCE_QUIC && QuicBackoff.INSTANCE.isCoolingDown(address)) {
+        if (QuicifyFzzyConfigs.connectMode() != QuicifyConfig.ConnectMode.FORCE_QUIC && QuicBackoff.INSTANCE.isCoolingDown(address)) {
             if (QuicifyConfigs.verbose()) {
                 Quicify.LOGGER.info("QUIC to {} failed recently, going straight to TCP", address);
             }
@@ -69,7 +70,7 @@ public final class QuicClientConnector {
         }
 
         if (QuicifyConfigs.verbose()) {
-            Quicify.LOGGER.info("QUIC attempt to {} (mode {}, timeout {} ms)", address, QuicifyConfigs.connectMode(), QuicifyConfigs.connectTimeoutMs());
+            Quicify.LOGGER.info("QUIC attempt to {} (mode {}, timeout {} ms)", address, QuicifyFzzyConfigs.connectMode(), QuicifyConfigs.connectTimeoutMs());
         }
 
         Channel datagramChannel;
@@ -77,7 +78,7 @@ public final class QuicClientConnector {
             datagramChannel = bindDatagramChannel(transport);
         } catch (Throwable t) {
             Quicify.LOGGER.warn("QUIC connection to {} failed ({}), falling back to TCP", address, t.toString());
-            if (QuicifyConfigs.connectMode() == QuicifyConfig.ConnectMode.FORCE_QUIC) {
+            if (QuicifyFzzyConfigs.connectMode() == QuicifyConfig.ConnectMode.FORCE_QUIC) {
                 throw describedFailure("QUIC connection to " + address + " failed and connectMode is FORCE_QUIC", t);
             }
             return vanillaFallback.get();
@@ -202,7 +203,7 @@ public final class QuicClientConnector {
             Quicify.LOGGER.warn("QUIC connection to {} failed ({}), falling back to TCP", address, t.toString());
             datagramChannel.close().awaitUninterruptibly();
 
-            if (QuicifyConfigs.connectMode() == QuicifyConfig.ConnectMode.FORCE_QUIC) {
+            if (QuicifyFzzyConfigs.connectMode() == QuicifyConfig.ConnectMode.FORCE_QUIC) {
                 promise.tryFailure(describedFailure("QUIC connection to " + address + " failed and connectMode is FORCE_QUIC", t));
                 return;
             }
