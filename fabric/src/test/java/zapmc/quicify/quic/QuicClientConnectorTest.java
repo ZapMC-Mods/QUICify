@@ -8,7 +8,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import zapmc.quicify.QuicifyConfig.ConnectMode;
-import zapmc.quicify.QuicifyConfigs;
+import zapmc.quicify.QuicifyFzzyConfigs;
 
 import java.net.InetSocketAddress;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -30,17 +30,17 @@ class QuicClientConnectorTest {
     void resetConfig() {
         fallbackChannel = new EmbeddedChannel();
         fallbackUsed = new AtomicBoolean(false);
-        QuicifyConfigs.INSTANCE.enabled.accept(true);
-        QuicifyConfigs.INSTANCE.connectMode.accept(ConnectMode.AUTO);
-        QuicifyConfigs.INSTANCE.connectTimeoutMs.accept(250);
+        QuicifyFzzyConfigs.INSTANCE.enabled.accept(true);
+        QuicifyFzzyConfigs.INSTANCE.connectMode.accept(ConnectMode.AUTO);
+        QuicifyFzzyConfigs.INSTANCE.connectTimeoutMs.accept(250);
         QuicBackoff.INSTANCE.recordSuccess(NOWHERE);
     }
 
     @AfterEach
     void restoreConfig() {
-        QuicifyConfigs.INSTANCE.enabled.accept(true);
-        QuicifyConfigs.INSTANCE.connectMode.accept(ConnectMode.AUTO);
-        QuicifyConfigs.INSTANCE.connectTimeoutMs.accept(3000);
+        QuicifyFzzyConfigs.INSTANCE.enabled.accept(true);
+        QuicifyFzzyConfigs.INSTANCE.connectMode.accept(ConnectMode.AUTO);
+        QuicifyFzzyConfigs.INSTANCE.connectTimeoutMs.accept(3000);
         QuicBackoff.INSTANCE.recordSuccess(NOWHERE);
         fallbackChannel.finishAndReleaseAll();
     }
@@ -56,7 +56,7 @@ class QuicClientConnectorTest {
 
     @Test
     void aDisabledModNeverLeavesTheFallbackPath() {
-        QuicifyConfigs.INSTANCE.enabled.accept(false);
+        QuicifyFzzyConfigs.INSTANCE.enabled.accept(false);
 
         ChannelFuture future = connect();
 
@@ -66,7 +66,7 @@ class QuicClientConnectorTest {
 
     @Test
     void forceTcpNeverLeavesTheFallbackPath() {
-        QuicifyConfigs.INSTANCE.connectMode.accept(ConnectMode.FORCE_TCP);
+        QuicifyFzzyConfigs.INSTANCE.connectMode.accept(ConnectMode.FORCE_TCP);
 
         ChannelFuture future = connect();
 
@@ -87,7 +87,7 @@ class QuicClientConnectorTest {
     @Test
     void forceQuicIgnoresTheCooldownAndStillAttempts() {
         QuicBackoff.INSTANCE.recordFailure(NOWHERE);
-        QuicifyConfigs.INSTANCE.connectMode.accept(ConnectMode.FORCE_QUIC);
+        QuicifyFzzyConfigs.INSTANCE.connectMode.accept(ConnectMode.FORCE_QUIC);
 
         ChannelFuture future = connect();
         future.awaitUninterruptibly();
@@ -114,7 +114,7 @@ class QuicClientConnectorTest {
 
     @Test
     void forceQuicFailsInsteadOfFallingBack() {
-        QuicifyConfigs.INSTANCE.connectMode.accept(ConnectMode.FORCE_QUIC);
+        QuicifyFzzyConfigs.INSTANCE.connectMode.accept(ConnectMode.FORCE_QUIC);
 
         ChannelFuture future = connect();
         future.awaitUninterruptibly();

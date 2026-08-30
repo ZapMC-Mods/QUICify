@@ -283,6 +283,17 @@ public final class PacketRouting {
         return type != null && TERMINALS.contains(type);
     }
 
+    public static BarrierClassifier.@Nullable Barrier barrierOf(Object msg) {
+        if (!(msg instanceof net.minecraft.network.protocol.Packet<?> packet)) {
+            return null;
+        }
+        PacketType<?> type = packet.type();
+        if (!isBarrier(type)) {
+            return null;
+        }
+        return new BarrierClassifier.Barrier(isTerminal(type), isPlayEntry(type));
+    }
+
     private static void put(PacketCategory category, PacketType<?>... types) {
         for (PacketType<?> type : types) {
             if (CATEGORIES.put(type, category) != null) {

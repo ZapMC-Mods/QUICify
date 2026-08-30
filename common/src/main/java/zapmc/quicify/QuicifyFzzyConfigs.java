@@ -1,11 +1,16 @@
 package zapmc.quicify;
 
+import io.netty.handler.codec.quic.QuicCongestionControlAlgorithm;
 import me.fzzyhmstrs.fzzy_config.api.ConfigApiJava;
 import me.fzzyhmstrs.fzzy_config.api.RegisterType;
 
-public final class QuicifyConfigs {
+public final class QuicifyFzzyConfigs implements QuicifySettings {
 
     public static final QuicifyConfig INSTANCE = load();
+
+    static {
+        QuicifyConfigs.install(new QuicifyFzzyConfigs());
+    }
 
     private static QuicifyConfig load() {
         try {
@@ -15,39 +20,50 @@ public final class QuicifyConfigs {
         }
     }
 
-    public static boolean enabled() {
-        return INSTANCE.enabled.get();
-    }
-
-    public static int serverPort() {
-        return INSTANCE.serverPort.get();
+    public static void install() {
     }
 
     public static QuicifyConfig.ConnectMode connectMode() {
         return INSTANCE.connectMode.get();
     }
 
-    public static boolean multiplexing() {
+    @Override
+    public boolean enabled() {
+        return INSTANCE.enabled.get();
+    }
+
+    @Override
+    public int serverPort() {
+        return INSTANCE.serverPort.get();
+    }
+
+    @Override
+    public boolean multiplexing() {
         return INSTANCE.multiplexing.get();
     }
 
-    public static int compressionLevel() {
+    @Override
+    public int compressionLevel() {
         return INSTANCE.compressionLevel.get();
     }
 
-    public static int compressionWindowLog() {
+    @Override
+    public int compressionWindowLog() {
         return INSTANCE.compressionWindowLog.get();
     }
 
-    public static QuicifyConfig.CongestionControl congestionControl() {
-        return INSTANCE.congestionControl.get();
+    @Override
+    public QuicCongestionControlAlgorithm congestionControl() {
+        return INSTANCE.congestionControl.get().algorithm();
     }
 
-    public static int connectTimeoutMs() {
+    @Override
+    public int connectTimeoutMs() {
         return INSTANCE.connectTimeoutMs.get();
     }
 
-    public static boolean verbose() {
+    @Override
+    public boolean verbose() {
         return INSTANCE.verbose.get();
     }
 }

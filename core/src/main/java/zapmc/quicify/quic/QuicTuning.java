@@ -14,7 +14,7 @@ public final class QuicTuning {
 
     private static <B extends QuicCodecBuilder<B>> B applyToBoth(B builder) {
         return builder
-                .congestionControlAlgorithm(QuicifyConfigs.congestionControl().algorithm())
+                .congestionControlAlgorithm(QuicifyConfigs.congestionControl())
                 .discoverPmtu(true)
                 .maxSendUdpPayloadSize(1350)
                 .maxRecvUdpPayloadSize(1500)

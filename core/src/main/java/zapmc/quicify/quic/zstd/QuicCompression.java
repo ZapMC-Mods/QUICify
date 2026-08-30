@@ -7,8 +7,8 @@ import io.netty.util.AttributeKey;
 import org.jspecify.annotations.Nullable;
 import zapmc.quicify.Quicify;
 import zapmc.quicify.QuicifyConfigs;
-import zapmc.quicify.quic.mux.QuicMux;
 import zapmc.quicify.quic.mux.QuicMuxSession;
+import zapmc.quicify.quic.mux.StreamMeter;
 
 public final class QuicCompression {
 
@@ -44,8 +44,8 @@ public final class QuicCompression {
             return;
         }
         ZstdStreamCodec codec = new ZstdStreamCodec(params);
-        if (pipeline.get(QuicMux.METER_NAME) != null) {
-            pipeline.addAfter(QuicMux.METER_NAME, ZstdStreamCodec.NAME, codec);
+        if (pipeline.get(StreamMeter.NAME) != null) {
+            pipeline.addAfter(StreamMeter.NAME, ZstdStreamCodec.NAME, codec);
         } else {
             pipeline.addFirst(ZstdStreamCodec.NAME, codec);
         }

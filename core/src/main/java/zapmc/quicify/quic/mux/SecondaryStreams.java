@@ -7,9 +7,9 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.codec.quic.QuicStreamChannel;
 import io.netty.util.ReferenceCountUtil;
-import net.minecraft.network.Varint21FrameDecoder;
 import org.jspecify.annotations.Nullable;
 import zapmc.quicify.Quicify;
+import zapmc.quicify.quic.VarintFrameDecoder;
 
 import java.util.List;
 
@@ -25,7 +25,7 @@ public final class SecondaryStreams {
 
     private static void installFrameForwarding(ChannelPipeline pipeline, QuicMuxSession session, PacketCategory category) {
         pipeline.addFirst(StreamMeter.NAME, new StreamMeter(session.stats(), category));
-        pipeline.addLast("splitter", new Varint21FrameDecoder(null));
+        pipeline.addLast("splitter", new VarintFrameDecoder());
         pipeline.addLast("quicify_merger", new StreamMerger(session, category));
     }
 
@@ -161,7 +161,7 @@ public final class SecondaryStreams {
         }
 
         private @Nullable ChannelHandlerContext injectionPoint() {
-            return session.master().pipeline().context("splitter");
+            return session.master().pipeline().context(session.injectionPoint());
         }
 
         @Override

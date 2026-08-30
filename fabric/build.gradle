@@ -32,6 +32,7 @@ dependencies {
     implementation "net.fabricmc:fabric-loader:${project.loader_version}"
     implementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_api_version}"
     implementation "me.fzzyhmstrs:fzzy_config:${project.fzzy_config_version}"
+    implementation project(':core')
     implementation project(':common')
 
     implementation "io.netty:netty-codec-classes-quic:${project.netty_quic_version}"
@@ -72,6 +73,14 @@ probe('quicStatusProbe', 'zapmc.quicify.quic.QuicStatusProbe',
 probe('quicLoginProbe', 'zapmc.quicify.quic.QuicLoginProbe',
         'Runs the QUIC login auth path against a running server (online-mode)')
 
+tasks.register('generatePacketRouting', JavaExec) {
+    group = 'quicify'
+    description = 'Exports PacketRouting as the numeric id table the proxy routes on'
+    classpath = sourceSets.test.runtimeClasspath
+    mainClass = 'zapmc.quicify.quic.mux.PacketRoutingExporter'
+    args project(':core').file('src/main/resources/quicify/packet-routing.json').absolutePath
+}
+
 processResources {
     def version = project.version
     inputs.property 'version', version
@@ -82,7 +91,11 @@ processResources {
 }
 
 tasks.named('jar') {
-    dependsOn ':common:jar'
+    dependsOn ':core:jar', ':common:jar'
+    from(zipTree(project(':core').jar.archiveFile)) {
+        exclude 'META-INF/**'
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
     from(zipTree(project(':common').jar.archiveFile)) {
         exclude 'META-INF/**'
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE

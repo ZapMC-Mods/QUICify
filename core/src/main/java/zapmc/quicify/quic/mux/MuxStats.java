@@ -2,7 +2,6 @@ package zapmc.quicify.quic.mux;
 
 import io.netty.handler.codec.quic.QuicChannel;
 import io.netty.util.AttributeKey;
-import net.minecraft.network.BandwidthDebugMonitor;
 import org.jspecify.annotations.Nullable;
 
 import java.util.concurrent.atomic.AtomicLongArray;
@@ -21,11 +20,11 @@ public final class MuxStats {
 
     private final AtomicLongArray streamIds = new AtomicLongArray(COUNT);
 
-    private final @Nullable BandwidthDebugMonitor bandwidth;
+    private final @Nullable RxMeter bandwidth;
 
     private boolean injecting;
 
-    public MuxStats(@Nullable BandwidthDebugMonitor bandwidth) {
+    public MuxStats(@Nullable RxMeter bandwidth) {
         this.bandwidth = bandwidth;
         for (int i = 0; i < COUNT; i++) {
             streamIds.set(i, NO_STREAM);

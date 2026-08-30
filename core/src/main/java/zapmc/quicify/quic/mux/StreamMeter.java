@@ -8,9 +8,9 @@ import io.netty.handler.codec.quic.QuicStreamChannel;
 
 import static zapmc.quicify.quic.mux.MuxStats.NO_STREAM;
 
-final class StreamMeter extends ChannelDuplexHandler {
+public final class StreamMeter extends ChannelDuplexHandler {
 
-    static final String NAME = "quicify_meter";
+    public static final String NAME = "quicify_meter";
 
     private final MuxStats stats;
 
@@ -18,7 +18,7 @@ final class StreamMeter extends ChannelDuplexHandler {
 
     private long streamId = NO_STREAM;
 
-    StreamMeter(MuxStats stats, PacketCategory category) {
+    public StreamMeter(MuxStats stats, PacketCategory category) {
         this.stats = stats;
         this.category = category;
     }

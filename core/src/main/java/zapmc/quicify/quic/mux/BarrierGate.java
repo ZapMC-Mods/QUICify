@@ -3,8 +3,6 @@ package zapmc.quicify.quic.mux;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.util.ReferenceCountUtil;
-import net.minecraft.network.protocol.Packet;
-import net.minecraft.network.protocol.PacketType;
 import org.jspecify.annotations.Nullable;
 import zapmc.quicify.Quicify;
 
@@ -19,6 +17,8 @@ public final class BarrierGate extends ChannelInboundHandlerAdapter {
 
     private final QuicMuxSession session;
 
+    private final BarrierClassifier classifier;
+
     private final Deque<Object> held = new ArrayDeque<>();
 
     private @Nullable ChannelHandlerContext context;
@@ -29,8 +29,9 @@ public final class BarrierGate extends ChannelInboundHandlerAdapter {
 
     private boolean armAfterRelease;
 
-    public BarrierGate(QuicMuxSession session) {
+    public BarrierGate(QuicMuxSession session, BarrierClassifier classifier) {
         this.session = session;
+        this.classifier = classifier;
     }
 
     @Override
@@ -61,24 +62,22 @@ public final class BarrierGate extends ChannelInboundHandlerAdapter {
     }
 
     private void deliver(ChannelHandlerContext ctx, Object msg) {
-        if (msg instanceof Packet<?> packet) {
-            PacketType<?> type = packet.type();
-            if (PacketRouting.isBarrier(type)) {
-                session.beginBarrier(PacketRouting.isTerminal(type));
-                session.finishBarrier();
-                if (session.draining()) {
-                    holding = true;
-                    armAfterRelease = PacketRouting.isPlayEntry(type);
-                    heldBarrier = msg;
-                    session.onDrainComplete(this::release);
-                    return;
-                }
-                ctx.fireChannelRead(msg);
-                if (PacketRouting.isPlayEntry(type)) {
-                    session.arm();
-                }
+        BarrierClassifier.Barrier barrier = classifier.classify(msg);
+        if (barrier != null) {
+            session.beginBarrier(barrier.terminal());
+            session.finishBarrier();
+            if (session.draining()) {
+                holding = true;
+                armAfterRelease = barrier.playEntry();
+                heldBarrier = msg;
+                session.onDrainComplete(this::release);
                 return;
             }
+            ctx.fireChannelRead(msg);
+            if (barrier.playEntry()) {
+                session.arm();
+            }
+            return;
         }
         ctx.fireChannelRead(msg);
     }
