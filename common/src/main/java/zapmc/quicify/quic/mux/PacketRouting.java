@@ -155,6 +155,7 @@ public final class PacketRouting {
                 GamePacketTypes.SERVERBOUND_DEBUG_SUBSCRIPTION_REQUEST,
                 GamePacketTypes.SERVERBOUND_EDIT_BOOK,
                 GamePacketTypes.SERVERBOUND_ENTITY_TAG_QUERY,
+                GamePacketTypes.SERVERBOUND_JIGSAW_GENERATE,
                 GamePacketTypes.SERVERBOUND_LOCK_DIFFICULTY,
                 GamePacketTypes.SERVERBOUND_RECIPE_BOOK_CHANGE_SETTINGS,
                 GamePacketTypes.SERVERBOUND_RECIPE_BOOK_SEEN_RECIPE,
@@ -249,7 +250,6 @@ public final class PacketRouting {
 
         world(
                 GamePacketTypes.SERVERBOUND_CHUNK_BATCH_RECEIVED,
-                GamePacketTypes.SERVERBOUND_JIGSAW_GENERATE,
                 GamePacketTypes.CLIENTBOUND_BLOCK_CHANGED_ACK,
                 GamePacketTypes.CLIENTBOUND_BLOCK_DESTRUCTION,
                 GamePacketTypes.CLIENTBOUND_BLOCK_ENTITY_DATA,
