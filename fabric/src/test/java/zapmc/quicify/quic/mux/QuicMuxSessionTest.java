@@ -203,6 +203,26 @@ class QuicMuxSessionTest {
     }
 
     @Test
+    void aDrainedSecondaryIsOnlyClosedOnceItsFinHasGoneOut() {
+        activate();
+        StubStream world = secondary(PacketCategory.WORLD);
+        world.blockShutdown = true;
+
+        session.beginBarrier(false);
+        session.finishBarrier();
+        for (int i = 0; i < PacketCategory.SECONDARY_COUNT; i++) {
+            session.onSecondaryInputClosed();
+        }
+
+        assertEquals("IDLE", session.stateName());
+        assertEquals(1, world.shutdownOutputs, "the drain shut the same output down twice");
+        assertTrue(world.channel.isOpen(), "the stream was closed with its FIN still queued, dropping everything queued behind it");
+
+        world.pendingShutdown.setSuccess();
+        assertFalse(world.channel.isOpen(), "the stream was never closed once its FIN went out");
+    }
+
+    @Test
     void aSecondaryOfferedAfterDisableIsRefused() {
         activate();
         session.disable();

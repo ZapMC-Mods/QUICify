@@ -1,6 +1,7 @@
 package zapmc.quicify.quic.mux;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.quic.QuicChannel;
@@ -39,6 +40,8 @@ public final class QuicMuxSession {
     private final boolean[] ready = new boolean[PacketCategory.SECONDARY_COUNT];
 
     private final boolean[] dirty = new boolean[PacketCategory.SECONDARY_COUNT];
+
+    private final ChannelFuture[] shutdowns = new ChannelFuture[PacketCategory.SECONDARY_COUNT];
 
     private final Deque<QueuedWrite> queued = new ArrayDeque<>();
 
@@ -326,9 +329,10 @@ public final class QuicMuxSession {
         if (state != State.DRAINING) {
             return;
         }
-        for (QuicStreamChannel stream : secondaries) {
+        for (int i = 0; i < secondaries.length; i++) {
+            QuicStreamChannel stream = secondaries[i];
             if (stream != null && stream.isActive()) {
-                stream.shutdownOutput();
+                shutdowns[i] = stream.shutdownOutput();
             }
         }
         if (drainingInputs == 0) {
@@ -354,6 +358,15 @@ public final class QuicMuxSession {
         }
     }
 
+    private void closeSecondary(int index, QuicStreamChannel stream) {
+        ChannelFuture shutdown = shutdowns[index];
+        shutdowns[index] = null;
+        if (shutdown == null) {
+            shutdown = stream.shutdownOutput();
+        }
+        shutdown.addListener(_ -> stream.close());
+    }
+
     private void completeDrain() {
         for (int i = 0; i < secondaries.length; i++) {
             QuicStreamChannel stream = secondaries[i];
@@ -361,7 +374,7 @@ public final class QuicMuxSession {
             ready[i] = false;
             dirty[i] = false;
             if (stream != null) {
-                stream.close();
+                closeSecondary(i, stream);
             }
         }
         readyCount = 0;
@@ -404,7 +417,7 @@ public final class QuicMuxSession {
             secondaries[i] = null;
             ready[i] = false;
             if (stream != null) {
-                stream.close();
+                closeSecondary(i, stream);
             }
         }
         readyCount = 0;
