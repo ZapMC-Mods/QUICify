@@ -62,7 +62,7 @@ class PacketRoutingTableTest {
             assertFalse(table.isDatagram(PacketRoutingTable.Phase.PLAY, false, id), "nothing serverbound is droppable, id " + id);
             assertFalse(table.isDatagram(PacketRoutingTable.Phase.CONFIGURATION, true, id), "nothing in CONFIGURATION is droppable, id " + id);
         }
-        assertEquals(8, eligible, "the committed table drifted from the datagram set in PacketRouting");
+        assertEquals(7, eligible, "the committed table drifted from the datagram set in PacketRouting");
         assertFalse(table.isDatagram(PacketRoutingTable.Phase.PLAY, true, -1));
     }
 

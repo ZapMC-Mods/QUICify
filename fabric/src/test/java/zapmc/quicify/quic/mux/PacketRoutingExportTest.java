@@ -53,10 +53,10 @@ class PacketRoutingExportTest {
 
         int chunk = idOf(GamePacketTypes.CLIENTBOUND_LEVEL_CHUNK_WITH_LIGHT);
         int login = idOf(GamePacketTypes.CLIENTBOUND_LOGIN);
-        int chat = idOf(GamePacketTypes.CLIENTBOUND_SYSTEM_CHAT);
+        int slot = idOf(GamePacketTypes.CLIENTBOUND_CONTAINER_SET_SLOT);
 
         assertEquals(PacketCategory.WORLD, table.category(PacketRoutingTable.Phase.PLAY, true, chunk));
-        assertEquals(PacketCategory.UI, table.category(PacketRoutingTable.Phase.PLAY, true, chat));
+        assertEquals(PacketCategory.UI, table.category(PacketRoutingTable.Phase.PLAY, true, slot));
         assertEquals(PacketCategory.CONTROL, table.category(PacketRoutingTable.Phase.PLAY, true, login));
         assertTrue(table.isBarrier(PacketRoutingTable.Phase.PLAY, true, login));
         assertTrue(table.isPlayEntry(PacketRoutingTable.Phase.PLAY, true, login));

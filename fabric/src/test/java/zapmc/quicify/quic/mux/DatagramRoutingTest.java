@@ -23,7 +23,6 @@ class DatagramRoutingTest {
             GamePacketTypes.CLIENTBOUND_SOUND,
             GamePacketTypes.CLIENTBOUND_SOUND_ENTITY,
             GamePacketTypes.CLIENTBOUND_LEVEL_EVENT,
-            GamePacketTypes.CLIENTBOUND_SET_TIME,
             GamePacketTypes.CLIENTBOUND_ANIMATE,
             GamePacketTypes.CLIENTBOUND_HURT_ANIMATION,
             GamePacketTypes.CLIENTBOUND_DAMAGE_EVENT
@@ -66,6 +65,12 @@ class DatagramRoutingTest {
             assertFalse(PacketRouting.isPlayEntry(type), type + " is a play entry and cannot be droppable");
             assertFalse(PacketRouting.isTerminal(type), type + " is a terminal and cannot be droppable");
         }
+    }
+
+    @Test
+    void setTimeStaysOnTheReliableStream() {
+        assertFalse(PacketRouting.isDatagram(GamePacketTypes.CLIENTBOUND_SET_TIME), "set_time carries clock updates that are broadcast once and never replayed, so a lost one desynchronises the clock for good");
+        assertEquals(PacketCategory.AMBIENT, PacketRouting.categoryOf(GamePacketTypes.CLIENTBOUND_SET_TIME));
     }
 
     @Test

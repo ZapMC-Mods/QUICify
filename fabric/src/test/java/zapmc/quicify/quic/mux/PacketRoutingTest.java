@@ -54,8 +54,38 @@ class PacketRoutingTest {
     void hotPathsLandOnTheirOwnStreams() {
         assertEquals(PacketCategory.WORLD, PacketRouting.categoryOf(GamePacketTypes.CLIENTBOUND_LEVEL_CHUNK_WITH_LIGHT));
         assertEquals(PacketCategory.REALTIME, PacketRouting.categoryOf(GamePacketTypes.SERVERBOUND_MOVE_PLAYER_POS_ROT));
-        assertEquals(PacketCategory.UI, PacketRouting.categoryOf(GamePacketTypes.CLIENTBOUND_SYSTEM_CHAT));
+        assertEquals(PacketCategory.UI, PacketRouting.categoryOf(GamePacketTypes.CLIENTBOUND_CONTAINER_SET_SLOT));
         assertEquals(PacketCategory.AMBIENT, PacketRouting.categoryOf(GamePacketTypes.CLIENTBOUND_LEVEL_PARTICLES));
+    }
+
+    @Test
+    void theChatChainStaysOnOneStream() {
+        PacketCategory chat = PacketRouting.categoryOf(GamePacketTypes.CLIENTBOUND_PLAYER_CHAT);
+        assertEquals(chat, PacketRouting.categoryOf(GamePacketTypes.CLIENTBOUND_PLAYER_INFO_UPDATE), "player_chat resolves its sender and that sender's chat session out of player_info_update");
+        assertEquals(chat, PacketRouting.categoryOf(GamePacketTypes.CLIENTBOUND_PLAYER_INFO_REMOVE), "a leaving player's last message still needs its player info");
+        assertEquals(chat, PacketRouting.categoryOf(GamePacketTypes.CLIENTBOUND_DELETE_CHAT), "delete_chat unpacks from the signature cache player_chat fills, and disconnects when it cannot");
+        assertEquals(chat, PacketRouting.categoryOf(GamePacketTypes.CLIENTBOUND_SYSTEM_CHAT));
+        assertEquals(chat, PacketRouting.categoryOf(GamePacketTypes.CLIENTBOUND_DISGUISED_CHAT));
+    }
+
+    @Test
+    void playerLoadedRidesWithTheActionsItUnlocks() {
+        PacketCategory loaded = PacketRouting.categoryOf(GamePacketTypes.SERVERBOUND_PLAYER_LOADED);
+        List<PacketType<?>> gated = List.of(
+                GamePacketTypes.SERVERBOUND_PLAYER_ACTION,
+                GamePacketTypes.SERVERBOUND_PLAYER_COMMAND,
+                GamePacketTypes.SERVERBOUND_PLAYER_INPUT,
+                GamePacketTypes.SERVERBOUND_USE_ITEM,
+                GamePacketTypes.SERVERBOUND_USE_ITEM_ON,
+                GamePacketTypes.SERVERBOUND_ATTACK,
+                GamePacketTypes.SERVERBOUND_INTERACT,
+                GamePacketTypes.SERVERBOUND_SPECTATOR_ACTION,
+                GamePacketTypes.SERVERBOUND_SET_CARRIED_ITEM,
+                GamePacketTypes.SERVERBOUND_MOVE_PLAYER_POS_ROT
+        );
+        for (PacketType<?> type : gated) {
+            assertEquals(loaded, PacketRouting.categoryOf(type), type + " is gated on hasClientLoaded() and must not be able to overtake player_loaded");
+        }
     }
 
     @Test

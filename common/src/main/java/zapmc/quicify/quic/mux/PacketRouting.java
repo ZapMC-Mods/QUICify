@@ -46,8 +46,7 @@ public final class PacketRouting {
                 CookiePacketTypes.SERVERBOUND_COOKIE_RESPONSE,
                 CookiePacketTypes.CLIENTBOUND_COOKIE_REQUEST,
                 PingPacketTypes.SERVERBOUND_PING_REQUEST,
-                PingPacketTypes.CLIENTBOUND_PONG_RESPONSE,
-                GamePacketTypes.SERVERBOUND_PLAYER_LOADED
+                PingPacketTypes.CLIENTBOUND_PONG_RESPONSE
         );
 
         barrier(
@@ -82,6 +81,7 @@ public final class PacketRouting {
                 GamePacketTypes.SERVERBOUND_PLAYER_ACTION,
                 GamePacketTypes.SERVERBOUND_PLAYER_COMMAND,
                 GamePacketTypes.SERVERBOUND_PLAYER_INPUT,
+                GamePacketTypes.SERVERBOUND_PLAYER_LOADED,
                 GamePacketTypes.SERVERBOUND_RENAME_ITEM,
                 GamePacketTypes.SERVERBOUND_SELECT_TRADE,
                 GamePacketTypes.SERVERBOUND_SET_BEACON,
@@ -98,6 +98,8 @@ public final class PacketRouting {
                 GamePacketTypes.CLIENTBOUND_ANIMATE,
                 GamePacketTypes.CLIENTBOUND_DAMAGE_EVENT,
                 GamePacketTypes.CLIENTBOUND_DEBUG_ENTITY_VALUE,
+                GamePacketTypes.CLIENTBOUND_DELETE_CHAT,
+                GamePacketTypes.CLIENTBOUND_DISGUISED_CHAT,
                 GamePacketTypes.CLIENTBOUND_ENTITY_EVENT,
                 GamePacketTypes.CLIENTBOUND_ENTITY_POSITION_SYNC,
                 GamePacketTypes.CLIENTBOUND_EXPLODE,
@@ -111,7 +113,9 @@ public final class PacketRouting {
                 GamePacketTypes.CLIENTBOUND_PLAYER_ABILITIES,
                 GamePacketTypes.CLIENTBOUND_PLAYER_COMBAT_END,
                 GamePacketTypes.CLIENTBOUND_PLAYER_COMBAT_ENTER,
+                GamePacketTypes.CLIENTBOUND_PLAYER_CHAT,
                 GamePacketTypes.CLIENTBOUND_PLAYER_COMBAT_KILL,
+                GamePacketTypes.CLIENTBOUND_PLAYER_INFO_REMOVE,
                 GamePacketTypes.CLIENTBOUND_PLAYER_INFO_UPDATE,
                 GamePacketTypes.CLIENTBOUND_PLAYER_LOOK_AT,
                 GamePacketTypes.CLIENTBOUND_PLAYER_POSITION,
@@ -127,6 +131,7 @@ public final class PacketRouting {
                 GamePacketTypes.CLIENTBOUND_SET_EQUIPMENT,
                 GamePacketTypes.CLIENTBOUND_SET_HEALTH,
                 GamePacketTypes.CLIENTBOUND_SET_PASSENGERS,
+                GamePacketTypes.CLIENTBOUND_SYSTEM_CHAT,
                 GamePacketTypes.CLIENTBOUND_TAKE_ITEM_ENTITY,
                 GamePacketTypes.CLIENTBOUND_TELEPORT_ENTITY,
                 GamePacketTypes.CLIENTBOUND_TICKING_STATE,
@@ -182,8 +187,6 @@ public final class PacketRouting {
                 GamePacketTypes.CLIENTBOUND_CUSTOM_CHAT_COMPLETIONS,
                 GamePacketTypes.CLIENTBOUND_DEBUG_EVENT,
                 GamePacketTypes.CLIENTBOUND_DEBUG_SAMPLE,
-                GamePacketTypes.CLIENTBOUND_DELETE_CHAT,
-                GamePacketTypes.CLIENTBOUND_DISGUISED_CHAT,
                 GamePacketTypes.CLIENTBOUND_GAME_RULE_VALUES,
                 GamePacketTypes.CLIENTBOUND_INITIALIZE_BORDER,
                 GamePacketTypes.CLIENTBOUND_LOW_DISK_SPACE_WARNING,
@@ -192,8 +195,6 @@ public final class PacketRouting {
                 GamePacketTypes.CLIENTBOUND_OPEN_BOOK,
                 GamePacketTypes.CLIENTBOUND_OPEN_SCREEN,
                 GamePacketTypes.CLIENTBOUND_PLACE_GHOST_RECIPE,
-                GamePacketTypes.CLIENTBOUND_PLAYER_CHAT,
-                GamePacketTypes.CLIENTBOUND_PLAYER_INFO_REMOVE,
                 GamePacketTypes.CLIENTBOUND_RECIPE_BOOK_ADD,
                 GamePacketTypes.CLIENTBOUND_RECIPE_BOOK_REMOVE,
                 GamePacketTypes.CLIENTBOUND_RECIPE_BOOK_SETTINGS,
@@ -218,7 +219,6 @@ public final class PacketRouting {
                 GamePacketTypes.CLIENTBOUND_SET_SUBTITLE_TEXT,
                 GamePacketTypes.CLIENTBOUND_SET_TITLE_TEXT,
                 GamePacketTypes.CLIENTBOUND_SET_TITLES_ANIMATION,
-                GamePacketTypes.CLIENTBOUND_SYSTEM_CHAT,
                 GamePacketTypes.CLIENTBOUND_TAB_LIST,
                 GamePacketTypes.CLIENTBOUND_TAG_QUERY,
                 GamePacketTypes.CLIENTBOUND_TEST_INSTANCE_BLOCK_STATUS,
@@ -242,7 +242,6 @@ public final class PacketRouting {
                 GamePacketTypes.CLIENTBOUND_SOUND,
                 GamePacketTypes.CLIENTBOUND_SOUND_ENTITY,
                 GamePacketTypes.CLIENTBOUND_LEVEL_EVENT,
-                GamePacketTypes.CLIENTBOUND_SET_TIME,
                 GamePacketTypes.CLIENTBOUND_ANIMATE,
                 GamePacketTypes.CLIENTBOUND_HURT_ANIMATION,
                 GamePacketTypes.CLIENTBOUND_DAMAGE_EVENT
