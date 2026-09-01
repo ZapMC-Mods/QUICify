@@ -37,6 +37,7 @@ public final class FrameRouter extends ChannelOutboundHandlerAdapter {
 
         BarrierClassifier.Barrier barrier = routing.barrier(frame);
         if (barrier != null) {
+            insideBundle = false;
             session.beginBarrier(barrier.terminal());
             ctx.write(msg, promise);
             session.finishBarrier();
