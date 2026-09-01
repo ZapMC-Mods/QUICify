@@ -28,7 +28,7 @@
         "21": "CONTROL",
         "22": "UI",
         "23": "UI",
-        "24": "UI",
+        "24": "CONTROL",
         "25": "REALTIME",
         "26": "WORLD",
         "27": "WORLD",
@@ -195,7 +195,7 @@
         "19": "REALTIME",
         "20": "REALTIME",
         "21": "CONTROL",
-        "22": "UI",
+        "22": "CONTROL",
         "23": "UI",
         "24": "UI",
         "25": "UI",
@@ -253,7 +253,7 @@
     "CONFIGURATION:CLIENTBOUND": {
       "categories": {
         "0": "CONTROL",
-        "1": "UI",
+        "1": "CONTROL",
         "2": "CONTROL",
         "4": "CONTROL",
         "5": "CONTROL",
@@ -282,7 +282,7 @@
       "categories": {
         "0": "CONTROL",
         "1": "CONTROL",
-        "2": "UI",
+        "2": "CONTROL",
         "4": "CONTROL",
         "5": "CONTROL",
         "6": "CONTROL",

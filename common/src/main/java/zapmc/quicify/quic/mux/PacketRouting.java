@@ -33,6 +33,8 @@ public final class PacketRouting {
     static {
         control(
                 CommonPacketTypes.SERVERBOUND_CLIENT_INFORMATION,
+                CommonPacketTypes.SERVERBOUND_CUSTOM_PAYLOAD,
+                CommonPacketTypes.CLIENTBOUND_CUSTOM_PAYLOAD,
                 CommonPacketTypes.SERVERBOUND_KEEP_ALIVE,
                 CommonPacketTypes.SERVERBOUND_PONG,
                 CommonPacketTypes.SERVERBOUND_RESOURCE_PACK,
@@ -141,9 +143,7 @@ public final class PacketRouting {
         );
 
         ui(
-                CommonPacketTypes.SERVERBOUND_CUSTOM_PAYLOAD,
                 CommonPacketTypes.SERVERBOUND_CUSTOM_CLICK_ACTION,
-                CommonPacketTypes.CLIENTBOUND_CUSTOM_PAYLOAD,
                 CommonPacketTypes.CLIENTBOUND_CLEAR_DIALOG,
                 CommonPacketTypes.CLIENTBOUND_SHOW_DIALOG,
                 CommonPacketTypes.CLIENTBOUND_UPDATE_TAGS,

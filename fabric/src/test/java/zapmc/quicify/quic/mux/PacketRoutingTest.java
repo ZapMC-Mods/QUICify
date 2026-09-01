@@ -2,6 +2,7 @@ package zapmc.quicify.quic.mux;
 
 import net.minecraft.SharedConstants;
 import net.minecraft.network.protocol.PacketType;
+import net.minecraft.network.protocol.common.CommonPacketTypes;
 import net.minecraft.network.protocol.game.GamePacketTypes;
 import net.minecraft.network.protocol.game.GameProtocols;
 import net.minecraft.server.Bootstrap;
@@ -86,6 +87,28 @@ class PacketRoutingTest {
         for (PacketType<?> type : gated) {
             assertEquals(loaded, PacketRouting.categoryOf(type), type + " is gated on hasClientLoaded() and must not be able to overtake player_loaded");
         }
+    }
+
+    @Test
+    void thirdPartyPayloadsShareTheLaneOfAnythingUnclassified() {
+        assertEquals(PacketCategory.CONTROL, PacketRouting.categoryOf(CommonPacketTypes.CLIENTBOUND_CUSTOM_PAYLOAD));
+        assertEquals(PacketCategory.CONTROL, PacketRouting.categoryOf(CommonPacketTypes.SERVERBOUND_CUSTOM_PAYLOAD));
+        assertEquals(PacketCategory.CONTROL, PacketRouting.categoryOf(null), "custom_payload carries protocol whose causal edges cannot be known, so it takes the same lane as an id we cannot classify");
+    }
+
+    @Test
+    void theBlockAckTrailsTheBlockUpdatesItResolves() {
+        PacketCategory ack = PacketRouting.categoryOf(GamePacketTypes.CLIENTBOUND_BLOCK_CHANGED_ACK);
+        assertEquals(ack, PacketRouting.categoryOf(GamePacketTypes.CLIENTBOUND_BLOCK_UPDATE), "an ack that overtakes the block_update it resolves reverts the block to its pre-prediction state until the update lands");
+        assertEquals(ack, PacketRouting.categoryOf(GamePacketTypes.CLIENTBOUND_SECTION_BLOCKS_UPDATE));
+        assertEquals(ack, PacketRouting.categoryOf(GamePacketTypes.CLIENTBOUND_LEVEL_CHUNK_WITH_LIGHT));
+    }
+
+    @Test
+    void theMountScreenTravelsWithTheContainerItOpens() {
+        PacketCategory mount = PacketRouting.categoryOf(GamePacketTypes.CLIENTBOUND_MOUNT_SCREEN_OPEN);
+        assertEquals(mount, PacketRouting.categoryOf(GamePacketTypes.CLIENTBOUND_CONTAINER_SET_CONTENT), "openHorseInventory sends the screen and then initMenu's contents, and contents for an unopened container id are dropped");
+        assertEquals(mount, PacketRouting.categoryOf(GamePacketTypes.CLIENTBOUND_CONTAINER_SET_SLOT));
     }
 
     @Test
