@@ -18,6 +18,8 @@ public final class PacketRouting {
 
     private static final Set<PacketType<?>> BARRIERS = new ReferenceOpenHashSet<>();
 
+    private static final Set<PacketType<?>> DATAGRAMS = new ReferenceOpenHashSet<>();
+
     private static final Set<PacketType<?>> PLAY_ENTRIES = Set.of(
             GamePacketTypes.CLIENTBOUND_LOGIN,
             GamePacketTypes.CLIENTBOUND_RESPAWN
@@ -60,7 +62,12 @@ public final class PacketRouting {
         realtime(
                 GamePacketTypes.SERVERBOUND_ACCEPT_TELEPORTATION,
                 GamePacketTypes.SERVERBOUND_ATTACK,
+                GamePacketTypes.SERVERBOUND_BUNDLE_ITEM_SELECTED,
                 GamePacketTypes.SERVERBOUND_CLIENT_TICK_END,
+                GamePacketTypes.SERVERBOUND_CONTAINER_BUTTON_CLICK,
+                GamePacketTypes.SERVERBOUND_CONTAINER_CLICK,
+                GamePacketTypes.SERVERBOUND_CONTAINER_CLOSE,
+                GamePacketTypes.SERVERBOUND_CONTAINER_SLOT_STATE_CHANGED,
                 GamePacketTypes.SERVERBOUND_INTERACT,
                 GamePacketTypes.SERVERBOUND_MOVE_PLAYER_POS,
                 GamePacketTypes.SERVERBOUND_MOVE_PLAYER_POS_ROT,
@@ -68,11 +75,18 @@ public final class PacketRouting {
                 GamePacketTypes.SERVERBOUND_MOVE_PLAYER_STATUS_ONLY,
                 GamePacketTypes.SERVERBOUND_MOVE_VEHICLE,
                 GamePacketTypes.SERVERBOUND_PADDLE_BOAT,
+                GamePacketTypes.SERVERBOUND_PICK_ITEM_FROM_BLOCK,
+                GamePacketTypes.SERVERBOUND_PICK_ITEM_FROM_ENTITY,
+                GamePacketTypes.SERVERBOUND_PLACE_RECIPE,
                 GamePacketTypes.SERVERBOUND_PLAYER_ABILITIES,
                 GamePacketTypes.SERVERBOUND_PLAYER_ACTION,
                 GamePacketTypes.SERVERBOUND_PLAYER_COMMAND,
                 GamePacketTypes.SERVERBOUND_PLAYER_INPUT,
+                GamePacketTypes.SERVERBOUND_RENAME_ITEM,
+                GamePacketTypes.SERVERBOUND_SELECT_TRADE,
+                GamePacketTypes.SERVERBOUND_SET_BEACON,
                 GamePacketTypes.SERVERBOUND_SET_CARRIED_ITEM,
+                GamePacketTypes.SERVERBOUND_SET_CREATIVE_MODE_SLOT,
                 GamePacketTypes.SERVERBOUND_SPECTATOR_ACTION,
                 GamePacketTypes.SERVERBOUND_SWING,
                 GamePacketTypes.SERVERBOUND_TELEPORT_TO_ENTITY,
@@ -98,6 +112,7 @@ public final class PacketRouting {
                 GamePacketTypes.CLIENTBOUND_PLAYER_COMBAT_END,
                 GamePacketTypes.CLIENTBOUND_PLAYER_COMBAT_ENTER,
                 GamePacketTypes.CLIENTBOUND_PLAYER_COMBAT_KILL,
+                GamePacketTypes.CLIENTBOUND_PLAYER_INFO_UPDATE,
                 GamePacketTypes.CLIENTBOUND_PLAYER_LOOK_AT,
                 GamePacketTypes.CLIENTBOUND_PLAYER_POSITION,
                 GamePacketTypes.CLIENTBOUND_PLAYER_ROTATION,
@@ -128,7 +143,6 @@ public final class PacketRouting {
                 CommonPacketTypes.CLIENTBOUND_SHOW_DIALOG,
                 CommonPacketTypes.CLIENTBOUND_UPDATE_TAGS,
                 GamePacketTypes.SERVERBOUND_BLOCK_ENTITY_TAG_QUERY,
-                GamePacketTypes.SERVERBOUND_BUNDLE_ITEM_SELECTED,
                 GamePacketTypes.SERVERBOUND_CHANGE_DIFFICULTY,
                 GamePacketTypes.SERVERBOUND_CHANGE_GAME_MODE,
                 GamePacketTypes.SERVERBOUND_CHAT,
@@ -138,26 +152,16 @@ public final class PacketRouting {
                 GamePacketTypes.SERVERBOUND_CHAT_SESSION_UPDATE,
                 GamePacketTypes.SERVERBOUND_CLIENT_COMMAND,
                 GamePacketTypes.SERVERBOUND_COMMAND_SUGGESTION,
-                GamePacketTypes.SERVERBOUND_CONTAINER_BUTTON_CLICK,
-                GamePacketTypes.SERVERBOUND_CONTAINER_CLICK,
-                GamePacketTypes.SERVERBOUND_CONTAINER_CLOSE,
-                GamePacketTypes.SERVERBOUND_CONTAINER_SLOT_STATE_CHANGED,
                 GamePacketTypes.SERVERBOUND_DEBUG_SUBSCRIPTION_REQUEST,
                 GamePacketTypes.SERVERBOUND_EDIT_BOOK,
                 GamePacketTypes.SERVERBOUND_ENTITY_TAG_QUERY,
+                GamePacketTypes.SERVERBOUND_JIGSAW_GENERATE,
                 GamePacketTypes.SERVERBOUND_LOCK_DIFFICULTY,
-                GamePacketTypes.SERVERBOUND_PICK_ITEM_FROM_BLOCK,
-                GamePacketTypes.SERVERBOUND_PICK_ITEM_FROM_ENTITY,
-                GamePacketTypes.SERVERBOUND_PLACE_RECIPE,
                 GamePacketTypes.SERVERBOUND_RECIPE_BOOK_CHANGE_SETTINGS,
                 GamePacketTypes.SERVERBOUND_RECIPE_BOOK_SEEN_RECIPE,
-                GamePacketTypes.SERVERBOUND_RENAME_ITEM,
                 GamePacketTypes.SERVERBOUND_SEEN_ADVANCEMENTS,
-                GamePacketTypes.SERVERBOUND_SELECT_TRADE,
-                GamePacketTypes.SERVERBOUND_SET_BEACON,
                 GamePacketTypes.SERVERBOUND_SET_COMMAND_BLOCK,
                 GamePacketTypes.SERVERBOUND_SET_COMMAND_MINECART,
-                GamePacketTypes.SERVERBOUND_SET_CREATIVE_MODE_SLOT,
                 GamePacketTypes.SERVERBOUND_SET_GAME_RULE,
                 GamePacketTypes.SERVERBOUND_SET_JIGSAW_BLOCK,
                 GamePacketTypes.SERVERBOUND_SET_STRUCTURE_BLOCK,
@@ -187,11 +191,9 @@ public final class PacketRouting {
                 GamePacketTypes.CLIENTBOUND_MOUNT_SCREEN_OPEN,
                 GamePacketTypes.CLIENTBOUND_OPEN_BOOK,
                 GamePacketTypes.CLIENTBOUND_OPEN_SCREEN,
-                GamePacketTypes.CLIENTBOUND_OPEN_SIGN_EDITOR,
                 GamePacketTypes.CLIENTBOUND_PLACE_GHOST_RECIPE,
                 GamePacketTypes.CLIENTBOUND_PLAYER_CHAT,
                 GamePacketTypes.CLIENTBOUND_PLAYER_INFO_REMOVE,
-                GamePacketTypes.CLIENTBOUND_PLAYER_INFO_UPDATE,
                 GamePacketTypes.CLIENTBOUND_RECIPE_BOOK_ADD,
                 GamePacketTypes.CLIENTBOUND_RECIPE_BOOK_REMOVE,
                 GamePacketTypes.CLIENTBOUND_RECIPE_BOOK_SETTINGS,
@@ -235,9 +237,19 @@ public final class PacketRouting {
                 GamePacketTypes.CLIENTBOUND_STOP_SOUND
         );
 
+        datagram(
+                GamePacketTypes.CLIENTBOUND_LEVEL_PARTICLES,
+                GamePacketTypes.CLIENTBOUND_SOUND,
+                GamePacketTypes.CLIENTBOUND_SOUND_ENTITY,
+                GamePacketTypes.CLIENTBOUND_LEVEL_EVENT,
+                GamePacketTypes.CLIENTBOUND_SET_TIME,
+                GamePacketTypes.CLIENTBOUND_ANIMATE,
+                GamePacketTypes.CLIENTBOUND_HURT_ANIMATION,
+                GamePacketTypes.CLIENTBOUND_DAMAGE_EVENT
+        );
+
         world(
                 GamePacketTypes.SERVERBOUND_CHUNK_BATCH_RECEIVED,
-                GamePacketTypes.SERVERBOUND_JIGSAW_GENERATE,
                 GamePacketTypes.CLIENTBOUND_BLOCK_CHANGED_ACK,
                 GamePacketTypes.CLIENTBOUND_BLOCK_DESTRUCTION,
                 GamePacketTypes.CLIENTBOUND_BLOCK_ENTITY_DATA,
@@ -252,6 +264,7 @@ public final class PacketRouting {
                 GamePacketTypes.CLIENTBOUND_GAME_TEST_HIGHLIGHT_POS,
                 GamePacketTypes.CLIENTBOUND_LEVEL_CHUNK_WITH_LIGHT,
                 GamePacketTypes.CLIENTBOUND_LIGHT_UPDATE,
+                GamePacketTypes.CLIENTBOUND_OPEN_SIGN_EDITOR,
                 GamePacketTypes.CLIENTBOUND_SECTION_BLOCKS_UPDATE,
                 GamePacketTypes.CLIENTBOUND_SET_CHUNK_CACHE_CENTER,
                 GamePacketTypes.CLIENTBOUND_SET_CHUNK_CACHE_RADIUS,
@@ -281,6 +294,21 @@ public final class PacketRouting {
 
     public static boolean isTerminal(@Nullable PacketType<?> type) {
         return type != null && TERMINALS.contains(type);
+    }
+
+    public static boolean isDatagram(@Nullable PacketType<?> type) {
+        return type != null && DATAGRAMS.contains(type);
+    }
+
+    public static BarrierClassifier.@Nullable Barrier barrierOf(Object msg) {
+        if (!(msg instanceof net.minecraft.network.protocol.Packet<?> packet)) {
+            return null;
+        }
+        PacketType<?> type = packet.type();
+        if (!isBarrier(type)) {
+            return null;
+        }
+        return new BarrierClassifier.Barrier(isTerminal(type), isPlayEntry(type));
     }
 
     private static void put(PacketCategory category, PacketType<?>... types) {
@@ -314,5 +342,20 @@ public final class PacketRouting {
 
     private static void world(PacketType<?>... types) {
         put(PacketCategory.WORLD, types);
+    }
+
+    private static void datagram(PacketType<?>... types) {
+        for (PacketType<?> type : types) {
+            PacketCategory category = CATEGORIES.get(type);
+            if (category != PacketCategory.AMBIENT && category != PacketCategory.REALTIME) {
+                throw new IllegalStateException("datagram entry " + type + " must be routed to AMBIENT or REALTIME first, was " + category);
+            }
+            if (BARRIERS.contains(type)) {
+                throw new IllegalStateException("barrier " + type + " cannot travel on a datagram");
+            }
+            if (!DATAGRAMS.add(type)) {
+                throw new IllegalStateException("duplicate datagram entry for " + type);
+            }
+        }
     }
 }

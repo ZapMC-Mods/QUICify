@@ -4,7 +4,7 @@ import net.neoforged.bus.api.IEventBus;
 import net.neoforged.fml.common.Mod;
 import net.neoforged.fml.loading.FMLPaths;
 import zapmc.quicify.Quicify;
-import zapmc.quicify.QuicifyConfigs;
+import zapmc.quicify.QuicifyFzzyConfigs;
 import zapmc.quicify.quic.QuicAvailability;
 import zapmc.quicify.quic.zstd.ZstdAvailability;
 
@@ -13,7 +13,7 @@ public class QuicifyNeoForge {
 
     public QuicifyNeoForge(IEventBus modEventBus) {
         Quicify.init(FMLPaths.CONFIGDIR.get());
-        QuicifyConfigs.INSTANCE.getId();
+        QuicifyFzzyConfigs.install();
         QuicAvailability.check();
         ZstdAvailability.check();
     }

@@ -39,6 +39,7 @@ neoForge {
     mods {
         quicify {
             sourceSet sourceSets.main
+            sourceSet project(':core').sourceSets.main
             sourceSet project(':common').sourceSets.main
         }
     }
@@ -56,6 +57,7 @@ configurations {
 }
 
 dependencies {
+    implementation project(':core')
     implementation project(':common')
     implementation "me.fzzyhmstrs:fzzy_config:${project.fzzy_config_neoforge_version}"
 
@@ -88,7 +90,11 @@ processResources {
 }
 
 tasks.named('jar') {
-    dependsOn ':common:jar'
+    dependsOn ':core:jar', ':common:jar'
+    from(zipTree(project(':core').jar.archiveFile)) {
+        exclude 'META-INF/**'
+        duplicatesStrategy = DuplicatesStrategy.EXCLUDE
+    }
     from(zipTree(project(':common').jar.archiveFile)) {
         exclude 'META-INF/**'
         duplicatesStrategy = DuplicatesStrategy.EXCLUDE

@@ -17,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import zapmc.quicify.QuicProtocol;
 import zapmc.quicify.cert.QuicCertManager;
+import zapmc.quicify.quic.QuicAttributes;
 import zapmc.quicify.quic.QuicClientConnector;
 import zapmc.quicify.quic.QuicServerTransport;
 
@@ -67,6 +68,12 @@ class QuicMuxTransportTest {
                 assertEquals(QuicProtocol.ALPN, collector.alpn.get(), "QUICify ALPN was not negotiated");
 
                 Channel datagramChannel = future.channel();
+                QuicStreamChannel master = datagramChannel.attr(QuicAttributes.MASTER_STREAM).get();
+                assertNotNull(master);
+                assertEquals(QuicProtocol.ALPN, collector.alpn.get(), "QUICify ALPN was not negotiated");
+                assertNotNull(master.parent().attr(QuicAttributes.DATAGRAM_CAPACITY).get(), "the client never saw the QUIC DATAGRAM extension, so the datagram lane can never open");
+                assertNotNull(collector.datagramCapacity.get(), "the server never saw the QUIC DATAGRAM extension, so the datagram lane can never open");
+
                 QuicStreamChannel secondary = collector.streams.getFirst();
                 secondary.close().syncUninterruptibly();
 
@@ -92,6 +99,8 @@ class QuicMuxTransportTest {
 
         private final AtomicReference<String> alpn = new AtomicReference<>();
 
+        private final AtomicReference<Integer> datagramCapacity = new AtomicReference<>();
+
         @Override
         public void handlerAdded(ChannelHandlerContext ctx) {
             if (ctx.channel().parent() instanceof QuicChannel parent) {
@@ -99,6 +108,7 @@ class QuicMuxTransportTest {
                 if (engine != null) {
                     alpn.compareAndSet(null, engine.getApplicationProtocol());
                 }
+                datagramCapacity.compareAndSet(null, parent.attr(QuicAttributes.DATAGRAM_CAPACITY).get());
             }
         }
 

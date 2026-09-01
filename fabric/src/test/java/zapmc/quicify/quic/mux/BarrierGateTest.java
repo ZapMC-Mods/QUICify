@@ -46,14 +46,14 @@ class BarrierGateTest {
         parent = new EmbeddedChannel();
         master = new StubStream(0);
         secondaries = new ArrayList<>();
-        session = new QuicMuxSession(MuxStubs.quicChannel(parent), master.handle, false, new MuxStats(null));
+        session = new QuicMuxSession(MuxStubs.quicChannel(parent), master.handle, false, new MuxStats(null), "splitter");
         session.arm();
         for (int i = 0; i < PacketCategory.SECONDARY_COUNT; i++) {
             StubStream secondary = new StubStream(4L * (i + 1));
             secondaries.add(secondary);
             session.registerSecondary(PacketCategory.bySecondaryIndex(i), secondary.handle);
         }
-        gate = new EmbeddedChannel(new BarrierGate(session));
+        gate = new EmbeddedChannel(new BarrierGate(session, PacketRouting::barrierOf));
     }
 
     @AfterEach

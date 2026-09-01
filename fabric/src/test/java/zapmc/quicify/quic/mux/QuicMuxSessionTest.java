@@ -34,7 +34,7 @@ class QuicMuxSessionTest {
         master = new StubStream(0);
         secondaries = new ArrayList<>();
         QuicChannel quicChannel = MuxStubs.quicChannel(parent);
-        session = new QuicMuxSession(quicChannel, master.handle, false, new MuxStats(null));
+        session = new QuicMuxSession(quicChannel, master.handle, false, new MuxStats(null), "splitter");
     }
 
     @AfterEach

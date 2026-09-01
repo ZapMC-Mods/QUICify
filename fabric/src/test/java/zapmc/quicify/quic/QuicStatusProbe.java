@@ -18,7 +18,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class QuicStatusProbe {
-
     static void main(String[] args) throws Exception {
         String host = args.length > 0 ? args[0] : "127.0.0.1";
         int port = args.length > 1 ? Integer.parseInt(args[1]) : 25565;
@@ -37,7 +36,17 @@ public final class QuicStatusProbe {
             throw new IllegalStateException("TCP fallback is not allowed in this probe");
         });
 
-        future.channel().pipeline().addFirst("probe_sniffer", new io.netty.channel.ChannelInboundHandlerAdapter() {
+        if (!future.await(15, TimeUnit.SECONDS) || !future.isSuccess()) {
+            System.out.println("PROBE FAILED: QUIC connect did not complete: " + future.cause());
+            System.exit(1);
+        }
+        io.netty.handler.codec.quic.QuicStreamChannel master = future.channel().attr(QuicAttributes.MASTER_STREAM).get();
+        if (master == null) {
+            System.out.println("PROBE FAILED: no master stream on the datagram channel");
+            System.exit(1);
+        }
+
+        master.pipeline().addFirst("probe_sniffer", new io.netty.channel.ChannelInboundHandlerAdapter() {
             @Override
             public void channelRead(io.netty.channel.ChannelHandlerContext ctx, Object msg) {
                 if (msg instanceof io.netty.buffer.ByteBuf buf) {

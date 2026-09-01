@@ -11,7 +11,7 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
-import zapmc.quicify.QuicifyConfigs;
+import zapmc.quicify.QuicifyFzzyConfigs;
 import zapmc.quicify.QuicifyServerData;
 import zapmc.quicify.quic.QuicClientConnector;
 import zapmc.quicify.quic.QuicConnectDecision;
@@ -35,7 +35,7 @@ public abstract class ConnectScreenMixin {
     )
     private ChannelFuture quicify$connectViaQuic(InetSocketAddress address, EventLoopGroupHolder eventLoopGroupHolder, Connection connection, Operation<ChannelFuture> original) {
         QuicifyServerData serverData = (QuicifyServerData) val$server;
-        QuicConnectDecision decision = QuicConnectDecision.resolve(serverData.quicify$hasPingResult(), serverData.quicify$announcement(), address, QuicifyConfigs.connectMode());
+        QuicConnectDecision decision = QuicConnectDecision.resolve(serverData.quicify$hasPingResult(), serverData.quicify$announcement(), address, QuicifyFzzyConfigs.connectMode());
         if (!decision.attemptQuic()) {
             return original.call(address, eventLoopGroupHolder, connection);
         }
