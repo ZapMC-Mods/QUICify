@@ -27,10 +27,15 @@ public final class MuxStreams {
     public static void acceptSecondary(QuicChannel quicChannel, QuicStreamChannel stream) {
         QuicMuxSession session = QuicMuxSession.of(quicChannel);
         if (session != null) {
-            SecondaryStreams.acceptOnServer(stream, session);
-            return;
-        }
-        if (Boolean.TRUE.equals(quicChannel.attr(MUX_DISABLED).get())) {
+            if (session.disabled()) {
+                stream.close();
+                return;
+            }
+            if (session.acceptsSecondaries()) {
+                SecondaryStreams.acceptOnServer(stream, session);
+                return;
+            }
+        } else if (Boolean.TRUE.equals(quicChannel.attr(MUX_DISABLED).get())) {
             stream.close();
             return;
         }

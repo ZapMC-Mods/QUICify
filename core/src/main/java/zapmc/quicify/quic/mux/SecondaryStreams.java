@@ -43,7 +43,10 @@ public final class SecondaryStreams {
         @Override
         public void handlerAdded(ChannelHandlerContext ctx) {
             QuicStreamChannel stream = (QuicStreamChannel) ctx.channel();
-            session.registerSecondary(category, stream);
+            if (!session.registerSecondary(category, stream)) {
+                ctx.pipeline().remove(this);
+                return;
+            }
             ctx.pipeline().addLast("quicify_hello", new ClientHelloDecoder(session, category));
             installFrameForwarding(ctx.pipeline(), session, category);
 
@@ -111,9 +114,10 @@ public final class SecondaryStreams {
                 return;
             }
             QuicStreamChannel stream = (QuicStreamChannel) ctx.channel();
-            session.registerSecondary(category, stream);
-
             ctx.pipeline().remove(this);
+            if (!session.registerSecondary(category, stream)) {
+                return;
+            }
             installFrameForwarding(ctx.pipeline(), session, category);
 
             ByteBuf echo = ctx.alloc().buffer(1);
@@ -179,8 +183,7 @@ public final class SecondaryStreams {
 
         @Override
         public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
-            Quicify.LOGGER.warn("QUIC secondary stream {} failed ({}), staying single-stream", category, cause.toString());
-            session.disable();
+            session.fail("secondary stream " + category + " failed: " + cause);
         }
 
         private void closeInput() {

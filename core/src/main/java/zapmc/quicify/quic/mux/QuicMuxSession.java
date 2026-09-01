@@ -142,6 +142,10 @@ public final class QuicMuxSession {
         return state == State.DISABLED || state == State.CLOSED;
     }
 
+    public boolean acceptsSecondaries() {
+        return state != State.DRAINING;
+    }
+
     public void openSecondaries() {
         if (!clientSide || disabled()) {
             return;
@@ -161,10 +165,16 @@ public final class QuicMuxSession {
         });
     }
 
-    void registerSecondary(PacketCategory category, QuicStreamChannel stream) {
+    boolean registerSecondary(PacketCategory category, QuicStreamChannel stream) {
         int index = category.secondaryIndex();
+        QuicStreamChannel existing = secondaries[index];
+        if (disabled() || state == State.DRAINING || (existing != null && existing != stream && existing.isActive())) {
+            stream.close();
+            return false;
+        }
         secondaries[index] = stream;
         stream.updatePriority(new QuicStreamPriority(category.urgency(), category.incremental()));
+        return true;
     }
 
     void markReady(PacketCategory category) {
@@ -359,6 +369,7 @@ public final class QuicMuxSession {
         state = pendingArm ? State.ARMED : State.IDLE;
         pendingArm = false;
         openSecondaries();
+        MuxStreams.drainPending(quicChannel, this);
         flushQueue();
 
         Runnable listener = drainListener;
@@ -368,11 +379,25 @@ public final class QuicMuxSession {
         }
     }
 
+    public void fail(String reason) {
+        if (state == State.ACTIVE) {
+            Quicify.LOGGER.warn("QUIC multiplexing failed while active ({}), closing the connection: routing on the master now would overtake packets already in flight on a secondary", reason);
+            state = State.DISABLED;
+            discardQueued();
+            MuxStreams.drainPending(quicChannel, null);
+            master.close();
+            return;
+        }
+        Quicify.LOGGER.warn("QUIC multiplexing failed ({}), staying single-stream", reason);
+        disable();
+    }
+
     public void disable() {
         if (state == State.CLOSED) {
             return;
         }
         state = State.DISABLED;
+        MuxStreams.drainPending(quicChannel, null);
         releaseQueue();
         for (int i = 0; i < secondaries.length; i++) {
             QuicStreamChannel stream = secondaries[i];

@@ -180,6 +180,66 @@ class QuicMuxSessionTest {
     }
 
     @Test
+    void aSecondaryOfferedDuringADrainIsRefusedInsteadOfReplacingTheOneBeingDrained() {
+        activate();
+        StubStream draining = secondary(PacketCategory.WORLD);
+
+        session.beginBarrier(false);
+        session.finishBarrier();
+        assertFalse(session.acceptsSecondaries());
+
+        StubStream fresh = new StubStream(20L);
+        secondaries.add(fresh);
+        assertFalse(session.registerSecondary(PacketCategory.WORLD, fresh.handle), "a next-generation stream was registered mid-drain");
+        assertFalse(fresh.channel.isOpen(), "the refused stream was left open");
+
+        for (int i = 0; i < PacketCategory.SECONDARY_COUNT; i++) {
+            session.onSecondaryInputClosed();
+        }
+
+        assertEquals("IDLE", session.stateName());
+        assertFalse(draining.channel.isOpen(), "the drain never closed the stream it was draining");
+        assertTrue(session.acceptsSecondaries());
+    }
+
+    @Test
+    void aSecondaryOfferedAfterDisableIsRefused() {
+        activate();
+        session.disable();
+
+        StubStream fresh = new StubStream(24L);
+        secondaries.add(fresh);
+        assertFalse(session.registerSecondary(PacketCategory.UI, fresh.handle));
+        assertFalse(fresh.channel.isOpen());
+    }
+
+    @Test
+    void aFailureWhileActiveClosesTheConnectionInsteadOfReorderingOntoTheMaster() {
+        activate();
+        assertEquals("ACTIVE", session.stateName());
+
+        session.fail("secondary stream UI failed");
+
+        assertTrue(session.disabled());
+        assertFalse(master.channel.isOpen(), "a mid-flight mux failure kept the connection and started routing on the master");
+    }
+
+    @Test
+    void aFailureWithNothingInFlightStillDegradesToSingleStream() {
+        session.arm();
+        register();
+
+        ByteBuf buf = payload(16);
+        assertTrue(session.route(PacketCategory.UI, buf, promise()));
+
+        session.fail("secondary stream UI failed");
+
+        assertEquals("DISABLED", session.stateName());
+        assertTrue(master.channel.isOpen(), "a failure with nothing in flight should not close the connection");
+        assertSame(buf, master.channel.readOutbound());
+    }
+
+    @Test
     void disablingDuringADrainStillReleasesTheDrainListener() {
         activate();
 
