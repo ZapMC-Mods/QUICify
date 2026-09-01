@@ -203,6 +203,24 @@ class QuicMuxSessionTest {
     }
 
     @Test
+    void whatTheDrainDumpsOnTheMasterIsFlushedRightAway() {
+        activate();
+        session.beginBarrier(false);
+        session.finishBarrier();
+
+        ByteBuf buf = payload(16);
+        assertTrue(session.route(PacketCategory.UI, buf, promise()));
+        assertNull(master.channel.readOutbound(), "a write queued during the drain reached the master early");
+
+        for (int i = 0; i < PacketCategory.SECONDARY_COUNT; i++) {
+            session.onSecondaryInputClosed();
+        }
+
+        assertEquals("IDLE", session.stateName());
+        assertSame(buf, master.channel.readOutbound(), "the drain wrote the backlog on the master and left it unflushed");
+    }
+
+    @Test
     void aDrainedSecondaryIsOnlyClosedOnceItsFinHasGoneOut() {
         activate();
         StubStream world = secondary(PacketCategory.WORLD);

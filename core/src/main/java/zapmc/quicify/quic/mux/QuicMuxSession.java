@@ -280,6 +280,7 @@ public final class QuicMuxSession {
     }
 
     private void flushQueue() {
+        boolean wroteOnMaster = false;
         QueuedWrite write;
         while ((write = queued.pollFirst()) != null) {
             queuedBytes -= write.buf().readableBytes();
@@ -289,10 +290,14 @@ public final class QuicMuxSession {
                 stream.write(write.buf(), adapt(stream, write.promise()));
             } else {
                 writeOnMaster(write.buf(), write.promise());
+                wroteOnMaster = true;
             }
         }
         queuedBytes = 0;
         flushSecondaries();
+        if (wroteOnMaster) {
+            flushMaster();
+        }
     }
 
     public void flushSecondaries() {
