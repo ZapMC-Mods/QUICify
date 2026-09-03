@@ -6,7 +6,6 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.quic.QuicChannel;
 import io.netty.handler.codec.quic.QuicStreamChannel;
-import io.netty.handler.timeout.ReadTimeoutHandler;
 import net.minecraft.network.Connection;
 import net.minecraft.network.RateKickingConnection;
 import net.minecraft.network.protocol.PacketFlow;
@@ -39,7 +38,7 @@ public final class ServerStreamHandler extends ChannelInboundHandlerAdapter {
         }
 
         MinecraftServer server = listener.getServer();
-        ChannelPipeline pipeline = ctx.pipeline().addLast("timeout", new ReadTimeoutHandler(30));
+        ChannelPipeline pipeline = ctx.pipeline();
         Connection.configureSerialization(pipeline, PacketFlow.SERVERBOUND, false, null);
 
         int rateLimit = server.getRateLimitPacketsPerSecond();

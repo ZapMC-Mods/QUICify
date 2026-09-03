@@ -6,6 +6,7 @@ import org.jspecify.annotations.Nullable;
 
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicLongArray;
+import java.util.function.LongSupplier;
 
 public final class MuxStats {
 
@@ -29,10 +30,20 @@ public final class MuxStats {
 
     private final @Nullable RxMeter bandwidth;
 
+    private final LongSupplier clock;
+
+    private volatile long lastRx;
+
     private boolean injecting;
 
     public MuxStats(@Nullable RxMeter bandwidth) {
+        this(bandwidth, System::currentTimeMillis);
+    }
+
+    MuxStats(@Nullable RxMeter bandwidth, LongSupplier clock) {
         this.bandwidth = bandwidth;
+        this.clock = clock;
+        this.lastRx = clock.getAsLong();
         for (int i = 0; i < COUNT; i++) {
             streamIds.set(i, NO_STREAM);
         }
@@ -48,6 +59,7 @@ public final class MuxStats {
 
     void recordRx(PacketCategory category) {
         rxPackets.incrementAndGet(category.ordinal());
+        lastRx = clock.getAsLong();
     }
 
     void recordDatagramTx() {
@@ -56,6 +68,7 @@ public final class MuxStats {
 
     void recordDatagramRx() {
         dgramRx.incrementAndGet();
+        lastRx = clock.getAsLong();
     }
 
     long recordDatagramDropped() {
@@ -110,5 +123,9 @@ public final class MuxStats {
 
     public long datagramDropped() {
         return dgramDropped.get();
+    }
+
+    public long silentMillis() {
+        return Math.max(0L, clock.getAsLong() - lastRx);
     }
 }

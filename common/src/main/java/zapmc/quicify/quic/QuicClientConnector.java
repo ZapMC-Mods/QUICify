@@ -17,7 +17,6 @@ import io.netty.handler.codec.quic.QuicSslContextBuilder;
 import io.netty.handler.codec.quic.QuicStreamChannel;
 import io.netty.handler.codec.quic.QuicStreamType;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
-import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import net.minecraft.network.BandwidthDebugMonitor;
 import net.minecraft.network.Connection;
@@ -308,7 +307,7 @@ public final class QuicClientConnector {
         @Override
         public void handlerAdded(ChannelHandlerContext ctx) {
             BandwidthDebugMonitor monitor = connection instanceof QuicifyConnection duck ? duck.quicify$bandwidthDebugMonitor() : null;
-            ChannelPipeline pipeline = ctx.pipeline().addLast("timeout", new ReadTimeoutHandler(30));
+            ChannelPipeline pipeline = ctx.pipeline();
             Connection.configureSerialization(pipeline, PacketFlow.CLIENTBOUND, false, monitor);
             connection.configurePacketHandler(pipeline);
             pipelineInstalled.set(true);
