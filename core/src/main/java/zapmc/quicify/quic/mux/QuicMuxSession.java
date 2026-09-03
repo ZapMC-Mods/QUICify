@@ -318,6 +318,7 @@ public final class QuicMuxSession {
             releaseQueue();
             return;
         }
+        releaseQueue();
         if (state != State.ACTIVE && state != State.ARMED) {
             return;
         }
@@ -436,6 +437,9 @@ public final class QuicMuxSession {
     }
 
     private void releaseQueue() {
+        if (queued.isEmpty()) {
+            return;
+        }
         QueuedWrite write;
         while ((write = queued.pollFirst()) != null) {
             writeOnMaster(write.buf(), write.promise());

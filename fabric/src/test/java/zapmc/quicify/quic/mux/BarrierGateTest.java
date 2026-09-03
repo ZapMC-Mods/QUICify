@@ -29,6 +29,8 @@ class BarrierGateTest {
 
     private QuicMuxSession session;
 
+    private MuxStats stats;
+
     private EmbeddedChannel gate;
 
     @BeforeAll
@@ -46,7 +48,8 @@ class BarrierGateTest {
         parent = new EmbeddedChannel();
         master = new StubStream(0);
         secondaries = new ArrayList<>();
-        session = new QuicMuxSession(MuxStubs.quicChannel(parent), master.handle, false, new MuxStats(null), "splitter");
+        stats = new MuxStats(null);
+        session = new QuicMuxSession(MuxStubs.quicChannel(parent), master.handle, false, stats, "splitter");
         session.arm();
         for (int i = 0; i < PacketCategory.SECONDARY_COUNT; i++) {
             StubStream secondary = new StubStream(4L * (i + 1));
@@ -90,6 +93,35 @@ class BarrierGateTest {
         assertNull(gate.readInbound());
 
         assertEquals("ARMED", session.stateName(), "the second barrier was delivered without going through the mux barrier handling");
+    }
+
+    @Test
+    void aPacketInjectedFromASecondaryDuringTheHoldGoesThroughAheadOfTheBarrier() {
+        Packet<?> startConfiguration = packet(GamePacketTypes.CLIENTBOUND_START_CONFIGURATION);
+        Packet<?> inFlight = packet(GamePacketTypes.CLIENTBOUND_LEVEL_CHUNK_WITH_LIGHT);
+
+        gate.writeInbound(startConfiguration);
+        assertEquals("DRAINING", session.stateName());
+
+        stats.beginInjection();
+        try {
+            gate.writeInbound(inFlight);
+        } finally {
+            stats.endInjection();
+        }
+
+        assertSame(inFlight, gate.readInbound(), "a packet still in flight on a secondary was held behind the barrier that is waiting for it");
+
+        gate.writeInbound("after");
+        assertNull(gate.readInbound(), "a master packet written behind the barrier was delivered before it");
+
+        for (int i = 0; i < PacketCategory.SECONDARY_COUNT; i++) {
+            session.onSecondaryInputClosed();
+        }
+
+        assertSame(startConfiguration, gate.readInbound());
+        assertEquals("after", gate.readInbound());
+        assertNull(gate.readInbound());
     }
 
     @Test

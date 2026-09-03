@@ -42,6 +42,10 @@ public final class BarrierGate extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(ChannelHandlerContext ctx, Object msg) {
         if (holding) {
+            if (session.stats().injecting() && classifier.classify(msg) == null) {
+                ctx.fireChannelRead(msg);
+                return;
+            }
             if (held.size() >= MAX_HELD) {
                 Quicify.LOGGER.warn("QUIC barrier held more than {} packets, staying single-stream", MAX_HELD);
                 session.disable();

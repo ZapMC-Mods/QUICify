@@ -203,6 +203,26 @@ class QuicMuxSessionTest {
     }
 
     @Test
+    void aBarrierSendsTheBacklogOnTheMasterBeforeTheBarrierPacketItself() {
+        session.arm();
+        register();
+
+        ByteBuf buf = payload(16);
+        assertTrue(session.route(PacketCategory.WORLD, buf, promise()));
+        assertNull(master.channel.readOutbound());
+
+        session.beginBarrier(false);
+
+        assertSame(buf, master.channel.readOutbound(), "the backlog was still queued when the barrier packet went out on the master behind it");
+
+        session.finishBarrier();
+        for (int i = 0; i < PacketCategory.SECONDARY_COUNT; i++) {
+            session.onSecondaryInputClosed();
+        }
+        assertNull(master.channel.readOutbound());
+    }
+
+    @Test
     void whatTheDrainDumpsOnTheMasterIsFlushedRightAway() {
         activate();
         session.beginBarrier(false);
