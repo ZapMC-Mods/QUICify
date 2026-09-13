@@ -16,6 +16,7 @@ public final class QuicifyFzzyConfigs implements QuicifySettings {
         try {
             return ConfigApiJava.registerAndLoadConfig(QuicifyConfig::new, RegisterType.CLIENT);
         } catch (Throwable t) {
+            Quicify.LOGGER.error("QUICify config could not be registered with Fzzy Config, falling back to defaults; settings will not persist", t);
             return new QuicifyConfig();
         }
     }
