@@ -81,7 +81,18 @@ public final class QuicServerTransport {
         if (!draining) {
             draining = true;
             EventLoopGroup boundGroup = group;
-            channel.closeFuture().addListener(_ -> boundGroup.shutdownGracefully(0, 0, TimeUnit.MILLISECONDS));
+            channel.closeFuture().addListener(_ -> {
+                boundGroup.shutdownGracefully(0, 0, TimeUnit.MILLISECONDS);
+                synchronized (this) {
+                    if (datagramChannel == channel) {
+                        datagramChannel = null;
+                    }
+                    if (group == boundGroup) {
+                        group = null;
+                    }
+                    draining = false;
+                }
+            });
 
             if (connections.isEmpty()) {
                 channel.close();

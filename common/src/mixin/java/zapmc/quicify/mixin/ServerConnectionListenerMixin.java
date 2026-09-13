@@ -68,9 +68,13 @@ public abstract class ServerConnectionListenerMixin {
 
     @Unique
     private void quicify$drainQuicListener(long graceMillis) {
-        QuicServerState.clear();
-        if (quicify$transport != null) {
-            quicify$transport.drain(graceMillis);
+        try {
+            QuicServerState.clear();
+            if (quicify$transport != null) {
+                quicify$transport.drain(graceMillis);
+            }
+        } catch (Throwable t) {
+            Quicify.LOGGER.error("Failed to drain QUIC listener", t);
         }
     }
 }
