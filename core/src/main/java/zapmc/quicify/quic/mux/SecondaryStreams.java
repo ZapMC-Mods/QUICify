@@ -183,6 +183,10 @@ public final class SecondaryStreams {
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
+            if (session.active() && !session.draining()) {
+                session.fail("secondary stream " + category + " closed unexpectedly");
+                return;
+            }
             closeInput();
         }
 
