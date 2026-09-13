@@ -63,13 +63,19 @@ public final class QuicServerTransport {
                 .build();
 
         group = new MultiThreadIoEventLoopGroup(1, new DefaultThreadFactory("quicify-server", true), transport.ioHandlerFactory());
-        datagramChannel = QuicTuning.applyTo(new Bootstrap(), 4 * 1024 * 1024)
-                .group(group)
-                .channel(transport.channelClass())
-                .handler(codec)
-                .bind(address)
-                .sync()
-                .channel();
+        try {
+            datagramChannel = QuicTuning.applyTo(new Bootstrap(), 4 * 1024 * 1024)
+                    .group(group)
+                    .channel(transport.channelClass())
+                    .handler(codec)
+                    .bind(address)
+                    .sync()
+                    .channel();
+        } catch (Exception e) {
+            group.shutdownGracefully(0, 0, TimeUnit.MILLISECONDS);
+            group = null;
+            throw e;
+        }
     }
 
     @SuppressWarnings("resource")
