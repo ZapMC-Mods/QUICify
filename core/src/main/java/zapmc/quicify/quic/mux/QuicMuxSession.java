@@ -337,7 +337,7 @@ public final class QuicMuxSession {
         }
         for (int i = 0; i < secondaries.length; i++) {
             QuicStreamChannel stream = secondaries[i];
-            if (stream != null && stream.isActive()) {
+            if (stream != null && stream.isActive() && shutdowns[i] == null) {
                 shutdowns[i] = stream.shutdownOutput();
             }
         }

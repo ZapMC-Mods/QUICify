@@ -180,6 +180,30 @@ class QuicMuxSessionTest {
     }
 
     @Test
+    void aSecondBarrierBeforeTheFinsReturnDoesNotReissueShutdownOutput() {
+        activate();
+
+        session.beginBarrier(false);
+        session.finishBarrier();
+        for (StubStream secondary : secondaries) {
+            assertEquals(1, secondary.shutdownOutputs, "the first barrier did not shut down every secondary output");
+        }
+
+        session.beginBarrier(false);
+        session.finishBarrier();
+
+        assertEquals("DRAINING", session.stateName());
+        for (StubStream secondary : secondaries) {
+            assertEquals(1, secondary.shutdownOutputs, "a second barrier before the fins returned reissued shutdownOutput on a secondary");
+        }
+
+        for (int i = 0; i < PacketCategory.SECONDARY_COUNT; i++) {
+            session.onSecondaryInputClosed();
+        }
+        assertEquals("IDLE", session.stateName());
+    }
+
+    @Test
     void aSecondaryOfferedDuringADrainIsRefusedInsteadOfReplacingTheOneBeingDrained() {
         activate();
         StubStream draining = secondary(PacketCategory.WORLD);
