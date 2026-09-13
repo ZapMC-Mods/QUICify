@@ -23,10 +23,10 @@ public final class SecondaryStreams {
         stream.pipeline().addLast("quicify_hello", new ServerHelloDecoder(session));
     }
 
-    private static void installFrameForwarding(ChannelPipeline pipeline, QuicMuxSession session, PacketCategory category) {
+    private static void installFrameForwarding(ChannelPipeline pipeline, QuicMuxSession session, PacketCategory category, QuicStreamChannel stream) {
         pipeline.addFirst(StreamMeter.NAME, new StreamMeter(session.stats(), category));
         pipeline.addLast("splitter", new VarintFrameDecoder());
-        pipeline.addLast("quicify_merger", new StreamMerger(session, category));
+        pipeline.addLast("quicify_merger", new StreamMerger(session, category, stream));
     }
 
     private static final class ClientInitializer extends ChannelInboundHandlerAdapter {
@@ -48,7 +48,7 @@ public final class SecondaryStreams {
                 return;
             }
             ctx.pipeline().addLast("quicify_hello", new ClientHelloDecoder(session, category));
-            installFrameForwarding(ctx.pipeline(), session, category);
+            installFrameForwarding(ctx.pipeline(), session, category, stream);
 
             ByteBuf hello = ctx.alloc().buffer(1);
             hello.writeByte(category.wireId());
@@ -118,7 +118,7 @@ public final class SecondaryStreams {
             if (!session.registerSecondary(category, stream)) {
                 return;
             }
-            installFrameForwarding(ctx.pipeline(), session, category);
+            installFrameForwarding(ctx.pipeline(), session, category, stream);
 
             ByteBuf echo = ctx.alloc().buffer(1);
             echo.writeByte(category.wireId());
@@ -132,11 +132,14 @@ public final class SecondaryStreams {
 
         private final PacketCategory category;
 
+        private final QuicStreamChannel stream;
+
         private boolean inputClosed;
 
-        private StreamMerger(QuicMuxSession session, PacketCategory category) {
+        private StreamMerger(QuicMuxSession session, PacketCategory category, QuicStreamChannel stream) {
             this.session = session;
             this.category = category;
+            this.stream = stream;
         }
 
         @Override
@@ -183,7 +186,7 @@ public final class SecondaryStreams {
 
         @Override
         public void channelInactive(ChannelHandlerContext ctx) {
-            if (session.active() && !session.draining()) {
+            if (session.multiplexing() && session.isCurrentSecondary(category, stream)) {
                 session.fail("secondary stream " + category + " closed unexpectedly");
                 return;
             }

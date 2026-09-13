@@ -6,6 +6,7 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.quic.QuicChannel;
+import io.netty.handler.codec.quic.QuicStreamChannel;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -85,11 +86,11 @@ class QuicMuxSessionTest {
      * drive its actual {@code channelInactive} through the pipeline instead of poking {@code QuicMuxSession}
      * directly, which would bypass the very routing this exercises.
      */
-    private static ChannelHandler streamMerger(QuicMuxSession session, PacketCategory category) throws Exception {
+    private static ChannelHandler streamMerger(QuicMuxSession session, PacketCategory category, StubStream stream) throws Exception {
         Class<?> mergerClass = Class.forName(SecondaryStreams.class.getName() + "$StreamMerger");
-        Constructor<?> constructor = mergerClass.getDeclaredConstructor(QuicMuxSession.class, PacketCategory.class);
+        Constructor<?> constructor = mergerClass.getDeclaredConstructor(QuicMuxSession.class, PacketCategory.class, QuicStreamChannel.class);
         constructor.setAccessible(true);
-        return (ChannelHandler) constructor.newInstance(session, category);
+        return (ChannelHandler) constructor.newInstance(session, category, stream.handle);
     }
 
     @Test
@@ -341,11 +342,25 @@ class QuicMuxSessionTest {
         assertEquals("ACTIVE", session.stateName());
 
         StubStream world = secondary(PacketCategory.WORLD);
-        world.channel.pipeline().addLast(streamMerger(session, PacketCategory.WORLD));
+        world.channel.pipeline().addLast(streamMerger(session, PacketCategory.WORLD, world));
         world.channel.pipeline().fireChannelInactive();
 
         assertTrue(session.disabled(), "a secondary going inactive while ACTIVE must fail the session, not sit there dead");
         assertFalse(master.channel.isOpen(), "failing while active must close the connection instead of silently returning to single-stream");
+    }
+
+    @Test
+    void aSecondaryDyingWhileArmedDegradesToSingleStreamInsteadOfBeingSwallowed() throws Exception {
+        session.arm();
+        register();
+        assertEquals("ARMED", session.stateName());
+
+        StubStream world = secondary(PacketCategory.WORLD);
+        world.channel.pipeline().addLast(streamMerger(session, PacketCategory.WORLD, world));
+        world.channel.pipeline().fireChannelInactive();
+
+        assertEquals("DISABLED", session.stateName(), "a secondary going inactive while ARMED must not be swallowed either");
+        assertTrue(master.channel.isOpen(), "nothing had been routed yet, so the connection must survive as single-stream");
     }
 
     @Test
@@ -358,7 +373,7 @@ class QuicMuxSessionTest {
         for (int i = 0; i < PacketCategory.SECONDARY_COUNT; i++) {
             PacketCategory category = PacketCategory.bySecondaryIndex(i);
             StubStream stream = secondary(category);
-            stream.channel.pipeline().addLast(streamMerger(session, category));
+            stream.channel.pipeline().addLast(streamMerger(session, category, stream));
             stream.channel.pipeline().fireChannelInactive();
         }
 
