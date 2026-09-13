@@ -17,6 +17,7 @@ import java.security.GeneralSecurityException;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.PrivateKey;
+import java.security.Signature;
 import java.security.cert.CertificateFactory;
 import java.security.cert.X509Certificate;
 import java.security.spec.PKCS8EncodedKeySpec;
@@ -33,6 +34,8 @@ public final class QuicCertManager {
     private static final String CERT_FILE = "quic-cert.pem";
 
     private static final long CERT_LIFETIME_DAYS = 3650;
+
+    private static final byte[] PAIRING_PROBE = "quicify-key-cert-pairing-probe".getBytes(StandardCharsets.US_ASCII);
 
     private final PrivateKey privateKey;
     private final X509Certificate certificate;
@@ -64,7 +67,29 @@ public final class QuicCertManager {
         PrivateKey privateKey = keyFactory.generatePrivate(new PKCS8EncodedKeySpec(keyDer));
         CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
         X509Certificate certificate = (X509Certificate) certificateFactory.generateCertificate(new java.io.ByteArrayInputStream(certDer));
+        requireMatchingPair(privateKey, certificate);
         return new QuicCertManager(privateKey, certificate);
+    }
+
+    /**
+     * Confirms the private key actually corresponds to the certificate's public key by signing a
+     * throwaway probe with one and verifying it with the other. A crash (or a racing instance)
+     * between the two {@code Files.move} calls in {@link #generateAndStore} can leave a new key
+     * next to an old certificate; both files are individually well-formed PEM, so without this
+     * check {@link #load} would happily accept a pair that QUIC can never actually use.
+     */
+    private static void requireMatchingPair(PrivateKey privateKey, X509Certificate certificate) throws GeneralSecurityException {
+        Signature signer = Signature.getInstance("SHA256withECDSA");
+        signer.initSign(privateKey);
+        signer.update(PAIRING_PROBE);
+        byte[] signature = signer.sign();
+
+        Signature verifier = Signature.getInstance("SHA256withECDSA");
+        verifier.initVerify(certificate.getPublicKey());
+        verifier.update(PAIRING_PROBE);
+        if (!verifier.verify(signature)) {
+            throw new GeneralSecurityException("QUIC private key does not correspond to the stored certificate");
+        }
     }
 
     private static QuicCertManager generateAndStore(Path directory, Path keyPath, Path certPath) throws GeneralSecurityException, IOException {
@@ -73,25 +98,35 @@ public final class QuicCertManager {
         X509Certificate certificate = SelfSignedCertGenerator.generate(keyPair, "quicify", now.minus(1, ChronoUnit.MINUTES), now.plus(CERT_LIFETIME_DAYS, ChronoUnit.DAYS));
 
         Files.createDirectories(directory);
-        writeAtomically(keyPath, pemEncode("PRIVATE KEY", keyPair.getPrivate().getEncoded()), true);
-        writeAtomically(certPath, pemEncode("CERTIFICATE", certificate.getEncoded()), false);
+        Path keyTmp = prepareTemp(keyPath, pemEncode("PRIVATE KEY", keyPair.getPrivate().getEncoded()), true);
+        Path certTmp = prepareTemp(certPath, pemEncode("CERTIFICATE", certificate.getEncoded()), false);
+        try {
+            // Both temp files are already fully written above; the two moves below run back to
+            // back with no I/O in between, narrowing the window where a crash could leave a new
+            // key on disk next to an old (mismatched) certificate, or vice versa.
+            moveIntoPlace(keyTmp, keyPath);
+            moveIntoPlace(certTmp, certPath);
+        } finally {
+            Files.deleteIfExists(keyTmp);
+            Files.deleteIfExists(certTmp);
+        }
         return new QuicCertManager(keyPair.getPrivate(), certificate);
     }
 
-    private static void writeAtomically(Path path, String content, boolean restrict) throws IOException {
+    private static Path prepareTemp(Path path, String content, boolean restrict) throws IOException {
         Path tmp = Files.createTempFile(path.getParent(), path.getFileName().toString(), ".tmp");
+        Files.writeString(tmp, content, StandardCharsets.US_ASCII);
+        if (restrict) {
+            restrictToOwner(tmp);
+        }
+        return tmp;
+    }
+
+    private static void moveIntoPlace(Path tmp, Path path) throws IOException {
         try {
-            Files.writeString(tmp, content, StandardCharsets.US_ASCII);
-            if (restrict) {
-                restrictToOwner(tmp);
-            }
-            try {
-                Files.move(tmp, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-            } catch (AtomicMoveNotSupportedException e) {
-                Files.move(tmp, path, StandardCopyOption.REPLACE_EXISTING);
-            }
-        } finally {
-            Files.deleteIfExists(tmp);
+            Files.move(tmp, path, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
+        } catch (AtomicMoveNotSupportedException e) {
+            Files.move(tmp, path, StandardCopyOption.REPLACE_EXISTING);
         }
     }
 
