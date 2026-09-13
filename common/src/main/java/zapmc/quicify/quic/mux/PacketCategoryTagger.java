@@ -53,12 +53,11 @@ public final class PacketCategoryTagger extends ChannelOutboundHandlerAdapter im
         } finally {
             current = previous;
             datagramEligible = previousEligible;
-        }
-
-        if (barrier) {
-            session.finishBarrier();
-            if (PacketRouting.isPlayEntry(type)) {
-                session.arm();
+            if (barrier) {
+                session.finishBarrier();
+                if (PacketRouting.isPlayEntry(type)) {
+                    session.arm();
+                }
             }
         }
     }
