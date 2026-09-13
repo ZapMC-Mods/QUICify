@@ -33,13 +33,13 @@ public abstract class DebugScreenEntriesMixin {
     @Inject(method = "<clinit>", at = @At("RETURN"))
     private static void quicify$registerQuicEntry(CallbackInfo ci) {
         try {
-            Identifier quicEntry = Identifier.fromNamespaceAndPath(Quicify.MOD_ID, "quic");
-            ENTRIES_BY_ID.put(quicEntry, new DebugEntryQuic());
             Map<Identifier, DebugScreenEntryStatus> defaultStatuses = PROFILES.get(DebugScreenProfile.DEFAULT);
             if (defaultStatuses == null) {
                 Quicify.LOGGER.warn("No default debug screen profile found, QUIC F3 entry will not appear");
                 return;
             }
+            Identifier quicEntry = Identifier.fromNamespaceAndPath(Quicify.MOD_ID, "quic");
+            ENTRIES_BY_ID.put(quicEntry, new DebugEntryQuic());
             Map<Identifier, DebugScreenEntryStatus> defaultProfile = new LinkedHashMap<>(defaultStatuses);
             defaultProfile.put(quicEntry, DebugScreenEntryStatus.IN_OVERLAY);
             Map<DebugScreenProfile, Map<Identifier, DebugScreenEntryStatus>> profiles = new LinkedHashMap<>(PROFILES);
