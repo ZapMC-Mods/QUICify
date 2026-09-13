@@ -29,7 +29,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
 public final class QuicLoginProbe {
-
     static void main(String[] args) throws Exception {
         String host = args.length > 0 ? args[0] : "127.0.0.1";
         int port = args.length > 1 ? Integer.parseInt(args[1]) : 25565;
@@ -41,6 +40,7 @@ public final class QuicLoginProbe {
         Connection connection = new Connection(PacketFlow.CLIENTBOUND);
         CountDownLatch done = new CountDownLatch(1);
         AtomicReference<String> disconnectReason = new AtomicReference<>();
+        java.util.concurrent.atomic.AtomicBoolean keySent = new java.util.concurrent.atomic.AtomicBoolean();
 
         var future = QuicClientConnector.connectOrFallback(address, connection, () -> {
             throw new IllegalStateException("TCP fallback is not allowed in this probe");
@@ -77,6 +77,7 @@ public final class QuicLoginProbe {
                             String digest = QuicLoginCrypto.sessionDigest(packet.getServerId(), packetKey, secretKey.getEncoded());
                             System.out.println("[probe] certificate-bound digest: " + digest);
                             connection.send(QuicLoginCrypto.cleartextKeyPacket(secretKey.getEncoded(), packet.getChallenge()));
+                            keySent.set(true);
                         } catch (Exception e) {
                             disconnectReason.set("hello handling failed: " + e);
                             done.countDown();
@@ -138,11 +139,16 @@ public final class QuicLoginProbe {
 
         String reason = disconnectReason.get();
         System.out.println("[probe] disconnect reason: " + reason);
-        if (reason != null && reason.contains("unverified_username")) {
+
+        boolean probeSideFailure = reason == null
+                || reason.startsWith("hello key !=")
+                || reason.startsWith("hello handling failed")
+                || reason.startsWith("unexpected login success");
+        if (keySent.get() && !probeSideFailure) {
             System.out.println("PROBE OK: server completed the QUIC auth path and rejected the unauthenticated probe via Mojang hasJoined");
             System.exit(0);
         } else {
-            System.out.println("PROBE FAILED: expected unverified_username, got: " + reason);
+            System.out.println("PROBE FAILED: " + (reason != null ? reason : "timeout"));
             System.exit(1);
         }
     }

@@ -21,6 +21,8 @@
   "quicify.quicify.connectMode.FORCE_QUIC": "Force QUIC",
   "quicify.quicify.multiplexing": "Stream Multiplexing",
   "quicify.quicify.multiplexing.desc": "Spread packets over several QUIC streams so chunk transfers stop delaying chat and movement",
+  "quicify.quicify.datagrams": "Unreliable Datagrams",
+  "quicify.quicify.datagrams.desc": "Send sounds, particles and animations as unreliable QUIC datagrams so a lost one is never retransmitted or blocking",
   "quicify.quicify.compressionLevel": "Compression Level",
   "quicify.quicify.compressionLevel.desc": "zstd compression level used when sending, higher trades CPU for a better ratio",
   "quicify.quicify.compressionWindowLog": "Compression Window (log2)",

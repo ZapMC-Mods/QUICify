@@ -17,7 +17,6 @@ import io.netty.handler.codec.quic.QuicSslContextBuilder;
 import io.netty.handler.codec.quic.QuicStreamChannel;
 import io.netty.handler.codec.quic.QuicStreamType;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
-import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.util.concurrent.DefaultThreadFactory;
 import net.minecraft.network.BandwidthDebugMonitor;
 import net.minecraft.network.Connection;
@@ -26,6 +25,8 @@ import zapmc.quicify.QuicProtocol;
 import zapmc.quicify.Quicify;
 import zapmc.quicify.QuicifyConfig;
 import zapmc.quicify.QuicifyConfigs;
+import zapmc.quicify.QuicifyFzzyConfigs;
+import zapmc.quicify.quic.mux.DatagramLane;
 import zapmc.quicify.quic.mux.QuicMux;
 import zapmc.quicify.quic.zstd.ZstdAvailability;
 
@@ -50,18 +51,18 @@ public final class QuicClientConnector {
     }
 
     public static ChannelFuture connectOrFallback(InetSocketAddress address, Connection connection, QuicDatagramTransport transport, Supplier<ChannelFuture> vanillaFallback) {
-        if (!QuicifyConfigs.enabled() || QuicifyConfigs.connectMode() == QuicifyConfig.ConnectMode.FORCE_TCP) {
+        if (!QuicifyConfigs.enabled() || QuicifyFzzyConfigs.connectMode() == QuicifyConfig.ConnectMode.FORCE_TCP) {
             return vanillaFallback.get();
         }
 
         if (!QuicAvailability.check() || !ZstdAvailability.check()) {
-            if (QuicifyConfigs.connectMode() == QuicifyConfig.ConnectMode.FORCE_QUIC) {
+            if (QuicifyFzzyConfigs.connectMode() == QuicifyConfig.ConnectMode.FORCE_QUIC) {
                 throw describedFailure("QUIC or zstd native library unavailable and connectMode is FORCE_QUIC", null);
             }
             return vanillaFallback.get();
         }
 
-        if (QuicifyConfigs.connectMode() != QuicifyConfig.ConnectMode.FORCE_QUIC && QuicBackoff.INSTANCE.isCoolingDown(address)) {
+        if (QuicifyFzzyConfigs.connectMode() != QuicifyConfig.ConnectMode.FORCE_QUIC && QuicBackoff.INSTANCE.isCoolingDown(address)) {
             if (QuicifyConfigs.verbose()) {
                 Quicify.LOGGER.info("QUIC to {} failed recently, going straight to TCP", address);
             }
@@ -69,7 +70,7 @@ public final class QuicClientConnector {
         }
 
         if (QuicifyConfigs.verbose()) {
-            Quicify.LOGGER.info("QUIC attempt to {} (mode {}, timeout {} ms)", address, QuicifyConfigs.connectMode(), QuicifyConfigs.connectTimeoutMs());
+            Quicify.LOGGER.info("QUIC attempt to {} (mode {}, timeout {} ms)", address, QuicifyFzzyConfigs.connectMode(), QuicifyConfigs.connectTimeoutMs());
         }
 
         Channel datagramChannel;
@@ -77,7 +78,7 @@ public final class QuicClientConnector {
             datagramChannel = bindDatagramChannel(transport);
         } catch (Throwable t) {
             Quicify.LOGGER.warn("QUIC connection to {} failed ({}), falling back to TCP", address, t.toString());
-            if (QuicifyConfigs.connectMode() == QuicifyConfig.ConnectMode.FORCE_QUIC) {
+            if (QuicifyFzzyConfigs.connectMode() == QuicifyConfig.ConnectMode.FORCE_QUIC) {
                 throw describedFailure("QUIC connection to " + address + " failed and connectMode is FORCE_QUIC", t);
             }
             return vanillaFallback.get();
@@ -153,7 +154,7 @@ public final class QuicClientConnector {
 
             QuicChannel quicChannel = QuicChannel.newBootstrap(datagramChannel)
                     .remoteAddress(address)
-                    .handler(new ChannelInboundHandlerAdapter())
+                    .handler(new DatagramLane())
                     .connect()
                     .get(remainingMillis(deadlineNanos), TimeUnit.MILLISECONDS);
 
@@ -202,7 +203,7 @@ public final class QuicClientConnector {
             Quicify.LOGGER.warn("QUIC connection to {} failed ({}), falling back to TCP", address, t.toString());
             datagramChannel.close().awaitUninterruptibly();
 
-            if (QuicifyConfigs.connectMode() == QuicifyConfig.ConnectMode.FORCE_QUIC) {
+            if (QuicifyFzzyConfigs.connectMode() == QuicifyConfig.ConnectMode.FORCE_QUIC) {
                 promise.tryFailure(describedFailure("QUIC connection to " + address + " failed and connectMode is FORCE_QUIC", t));
                 return;
             }
@@ -306,10 +307,9 @@ public final class QuicClientConnector {
         @Override
         public void handlerAdded(ChannelHandlerContext ctx) {
             BandwidthDebugMonitor monitor = connection instanceof QuicifyConnection duck ? duck.quicify$bandwidthDebugMonitor() : null;
-            ChannelPipeline pipeline = ctx.pipeline().addLast("timeout", new ReadTimeoutHandler(30));
+            ChannelPipeline pipeline = ctx.pipeline();
             Connection.configureSerialization(pipeline, PacketFlow.CLIENTBOUND, false, monitor);
             connection.configurePacketHandler(pipeline);
-            pipelineInstalled.set(true);
             if (ctx.channel().parent() instanceof QuicChannel quicChannel && ctx.channel() instanceof QuicStreamChannel master) {
                 try {
                     QuicMux.install(quicChannel, master, true, monitor);
@@ -321,6 +321,7 @@ public final class QuicClientConnector {
                 @Override
                 public void channelActive(ChannelHandlerContext ctx) throws Exception {
                     super.channelActive(ctx);
+                    pipelineInstalled.set(true);
                     activated.countDown();
                 }
             });

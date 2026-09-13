@@ -1,0 +1,25 @@
+plugins {
+    id 'java'
+}
+
+dependencies {
+    compileOnly "io.netty:netty-codec-classes-quic:${project.netty_quic_version}"
+    compileOnly "io.netty:netty-transport-classes-epoll:${project.netty_quic_version}"
+    compileOnly "io.netty:netty-transport-classes-kqueue:${project.netty_quic_version}"
+    compileOnly "com.github.luben:zstd-jni:${project.zstd_version}"
+    compileOnly "com.google.code.gson:gson:${project.gson_version}"
+    compileOnly "org.slf4j:slf4j-api:${project.slf4j_version}"
+    compileOnly "org.jspecify:jspecify:${project.jspecify_version}"
+
+    testImplementation "io.netty:netty-codec-classes-quic:${project.netty_quic_version}"
+    testImplementation "com.github.luben:zstd-jni:${project.zstd_version}"
+    testImplementation "com.google.code.gson:gson:${project.gson_version}"
+    testImplementation "org.slf4j:slf4j-api:${project.slf4j_version}"
+    testImplementation "org.jspecify:jspecify:${project.jspecify_version}"
+    testImplementation "org.junit.jupiter:junit-jupiter:${project.junit_version}"
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+}
+
+tasks.named('test') {
+    useJUnitPlatform()
+}

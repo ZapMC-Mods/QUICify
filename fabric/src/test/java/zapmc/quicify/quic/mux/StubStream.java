@@ -1,5 +1,6 @@
 package zapmc.quicify.quic.mux;
 
+import io.netty.channel.ChannelPromise;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.quic.QuicStreamChannel;
 
@@ -11,12 +12,20 @@ final class StubStream {
 
     int shutdownOutputs;
 
+    boolean blockShutdown;
+
+    ChannelPromise pendingShutdown;
+
     StubStream(long streamId) {
         handle = MuxStubs.proxy(QuicStreamChannel.class, channel, (method, _) -> switch (method.getName()) {
             case "streamId" -> streamId;
             case "shutdownOutput", "shutdownInput", "shutdown" -> {
                 shutdownOutputs++;
-                yield channel.newSucceededFuture();
+                if (!blockShutdown) {
+                    yield channel.newSucceededFuture();
+                }
+                pendingShutdown = channel.newPromise();
+                yield pendingShutdown;
             }
             default -> null;
         });

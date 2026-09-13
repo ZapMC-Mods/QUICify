@@ -2,13 +2,16 @@ package zapmc.quicify.quic.mux;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelPromise;
 import io.netty.channel.embedded.EmbeddedChannel;
 import io.netty.handler.codec.quic.QuicChannel;
+import io.netty.handler.codec.quic.QuicStreamChannel;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Constructor;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -28,13 +31,20 @@ class QuicMuxSessionTest {
 
     private QuicMuxSession session;
 
+    private static ChannelHandler streamMerger(QuicMuxSession session, PacketCategory category, StubStream stream) throws Exception {
+        Class<?> mergerClass = Class.forName(SecondaryStreams.class.getName() + "$StreamMerger");
+        Constructor<?> constructor = mergerClass.getDeclaredConstructor(QuicMuxSession.class, PacketCategory.class, QuicStreamChannel.class);
+        constructor.setAccessible(true);
+        return (ChannelHandler) constructor.newInstance(session, category, stream.handle);
+    }
+
     @BeforeEach
     void setUp() {
         parent = new EmbeddedChannel();
         master = new StubStream(0);
         secondaries = new ArrayList<>();
         QuicChannel quicChannel = MuxStubs.quicChannel(parent);
-        session = new QuicMuxSession(quicChannel, master.handle, false, new MuxStats(null));
+        session = new QuicMuxSession(quicChannel, master.handle, false, new MuxStats(null), "splitter");
     }
 
     @AfterEach
@@ -177,6 +187,193 @@ class QuicMuxSessionTest {
         for (StubStream secondary : secondaries) {
             assertFalse(secondary.channel.isOpen(), "a drained secondary stream was left open");
         }
+    }
+
+    @Test
+    void aSecondBarrierBeforeTheFinsReturnDoesNotReissueShutdownOutput() {
+        activate();
+
+        session.beginBarrier(false);
+        session.finishBarrier();
+        for (StubStream secondary : secondaries) {
+            assertEquals(1, secondary.shutdownOutputs, "the first barrier did not shut down every secondary output");
+        }
+
+        session.beginBarrier(false);
+        session.finishBarrier();
+
+        assertEquals("DRAINING", session.stateName());
+        for (StubStream secondary : secondaries) {
+            assertEquals(1, secondary.shutdownOutputs, "a second barrier before the fins returned reissued shutdownOutput on a secondary");
+        }
+
+        for (int i = 0; i < PacketCategory.SECONDARY_COUNT; i++) {
+            session.onSecondaryInputClosed();
+        }
+        assertEquals("IDLE", session.stateName());
+    }
+
+    @Test
+    void aSecondaryOfferedDuringADrainIsRefusedInsteadOfReplacingTheOneBeingDrained() {
+        activate();
+        StubStream draining = secondary(PacketCategory.WORLD);
+
+        session.beginBarrier(false);
+        session.finishBarrier();
+        assertFalse(session.acceptsSecondaries());
+
+        StubStream fresh = new StubStream(20L);
+        secondaries.add(fresh);
+        assertFalse(session.registerSecondary(PacketCategory.WORLD, fresh.handle), "a next-generation stream was registered mid-drain");
+        assertFalse(fresh.channel.isOpen(), "the refused stream was left open");
+
+        for (int i = 0; i < PacketCategory.SECONDARY_COUNT; i++) {
+            session.onSecondaryInputClosed();
+        }
+
+        assertEquals("IDLE", session.stateName());
+        assertFalse(draining.channel.isOpen(), "the drain never closed the stream it was draining");
+        assertTrue(session.acceptsSecondaries());
+    }
+
+    @Test
+    void aBarrierSendsTheBacklogOnTheMasterBeforeTheBarrierPacketItself() {
+        session.arm();
+        register();
+
+        ByteBuf buf = payload(16);
+        assertTrue(session.route(PacketCategory.WORLD, buf, promise()));
+        assertNull(master.channel.readOutbound());
+
+        session.beginBarrier(false);
+
+        assertSame(buf, master.channel.readOutbound(), "the backlog was still queued when the barrier packet went out on the master behind it");
+
+        session.finishBarrier();
+        for (int i = 0; i < PacketCategory.SECONDARY_COUNT; i++) {
+            session.onSecondaryInputClosed();
+        }
+        assertNull(master.channel.readOutbound());
+    }
+
+    @Test
+    void whatTheDrainDumpsOnTheMasterIsFlushedRightAway() {
+        activate();
+        session.beginBarrier(false);
+        session.finishBarrier();
+
+        ByteBuf buf = payload(16);
+        assertTrue(session.route(PacketCategory.UI, buf, promise()));
+        assertNull(master.channel.readOutbound(), "a write queued during the drain reached the master early");
+
+        for (int i = 0; i < PacketCategory.SECONDARY_COUNT; i++) {
+            session.onSecondaryInputClosed();
+        }
+
+        assertEquals("IDLE", session.stateName());
+        assertSame(buf, master.channel.readOutbound(), "the drain wrote the backlog on the master and left it unflushed");
+    }
+
+    @Test
+    void aDrainedSecondaryIsOnlyClosedOnceItsFinHasGoneOut() {
+        activate();
+        StubStream world = secondary(PacketCategory.WORLD);
+        world.blockShutdown = true;
+
+        session.beginBarrier(false);
+        session.finishBarrier();
+        for (int i = 0; i < PacketCategory.SECONDARY_COUNT; i++) {
+            session.onSecondaryInputClosed();
+        }
+
+        assertEquals("IDLE", session.stateName());
+        assertEquals(1, world.shutdownOutputs, "the drain shut the same output down twice");
+        assertTrue(world.channel.isOpen(), "the stream was closed with its FIN still queued, dropping everything queued behind it");
+
+        world.pendingShutdown.setSuccess();
+        assertFalse(world.channel.isOpen(), "the stream was never closed once its FIN went out");
+    }
+
+    @Test
+    void aSecondaryOfferedAfterDisableIsRefused() {
+        activate();
+        session.disable();
+
+        StubStream fresh = new StubStream(24L);
+        secondaries.add(fresh);
+        assertFalse(session.registerSecondary(PacketCategory.UI, fresh.handle));
+        assertFalse(fresh.channel.isOpen());
+    }
+
+    @Test
+    void aFailureWhileActiveClosesTheConnectionInsteadOfReorderingOntoTheMaster() {
+        activate();
+        assertEquals("ACTIVE", session.stateName());
+
+        session.fail("secondary stream UI failed");
+
+        assertTrue(session.disabled());
+        assertFalse(master.channel.isOpen(), "a mid-flight mux failure kept the connection and started routing on the master");
+    }
+
+    @Test
+    void aFailureWithNothingInFlightStillDegradesToSingleStream() {
+        session.arm();
+        register();
+
+        ByteBuf buf = payload(16);
+        assertTrue(session.route(PacketCategory.UI, buf, promise()));
+
+        session.fail("secondary stream UI failed");
+
+        assertEquals("DISABLED", session.stateName());
+        assertTrue(master.channel.isOpen(), "a failure with nothing in flight should not close the connection");
+        assertSame(buf, master.channel.readOutbound());
+    }
+
+    @Test
+    void aSecondaryDyingWhileActiveFailsTheSessionInsteadOfBeingSwallowed() throws Exception {
+        activate();
+        assertEquals("ACTIVE", session.stateName());
+
+        StubStream world = secondary(PacketCategory.WORLD);
+        world.channel.pipeline().addLast(streamMerger(session, PacketCategory.WORLD, world));
+        world.channel.pipeline().fireChannelInactive();
+
+        assertTrue(session.disabled(), "a secondary going inactive while ACTIVE must fail the session, not sit there dead");
+        assertFalse(master.channel.isOpen(), "failing while active must close the connection instead of silently returning to single-stream");
+    }
+
+    @Test
+    void aSecondaryDyingWhileArmedDegradesToSingleStreamInsteadOfBeingSwallowed() throws Exception {
+        session.arm();
+        register();
+        assertEquals("ARMED", session.stateName());
+
+        StubStream world = secondary(PacketCategory.WORLD);
+        world.channel.pipeline().addLast(streamMerger(session, PacketCategory.WORLD, world));
+        world.channel.pipeline().fireChannelInactive();
+
+        assertEquals("DISABLED", session.stateName(), "a secondary going inactive while ARMED must not be swallowed either");
+        assertTrue(master.channel.isOpen(), "nothing had been routed yet, so the connection must survive as single-stream");
+    }
+
+    @Test
+    void aSecondaryGoingInactiveWhileDrainingIsStillTreatedAsTheExpectedFinNotAFailure() throws Exception {
+        activate();
+        session.beginBarrier(false);
+        session.finishBarrier();
+        assertEquals("DRAINING", session.stateName());
+
+        for (int i = 0; i < PacketCategory.SECONDARY_COUNT; i++) {
+            PacketCategory category = PacketCategory.bySecondaryIndex(i);
+            StubStream stream = secondary(category);
+            stream.channel.pipeline().addLast(streamMerger(session, category, stream));
+            stream.channel.pipeline().fireChannelInactive();
+        }
+
+        assertEquals("IDLE", session.stateName(), "channelInactive during a normal drain must not fail the session");
+        assertTrue(master.channel.isOpen());
     }
 
     @Test

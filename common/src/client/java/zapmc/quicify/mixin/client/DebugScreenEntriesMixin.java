@@ -22,22 +22,30 @@ import java.util.Map;
 public abstract class DebugScreenEntriesMixin {
 
     @Shadow
-    @Final
-    private static Map<Identifier, DebugScreenEntry> ENTRIES_BY_ID;
-
-    @Shadow
     @Mutable
     @Final
     public static Map<DebugScreenProfile, Map<Identifier, DebugScreenEntryStatus>> PROFILES;
+    @Shadow
+    @Final
+    private static Map<Identifier, DebugScreenEntry> ENTRIES_BY_ID;
 
     @Inject(method = "<clinit>", at = @At("RETURN"))
     private static void quicify$registerQuicEntry(CallbackInfo ci) {
-        Identifier quicEntry = Identifier.fromNamespaceAndPath(Quicify.MOD_ID, "quic");
-        ENTRIES_BY_ID.put(quicEntry, new DebugEntryQuic());
-        Map<Identifier, DebugScreenEntryStatus> defaultProfile = new LinkedHashMap<>(PROFILES.get(DebugScreenProfile.DEFAULT));
-        defaultProfile.put(quicEntry, DebugScreenEntryStatus.IN_OVERLAY);
-        Map<DebugScreenProfile, Map<Identifier, DebugScreenEntryStatus>> profiles = new LinkedHashMap<>(PROFILES);
-        profiles.put(DebugScreenProfile.DEFAULT, Map.copyOf(defaultProfile));
-        PROFILES = Map.copyOf(profiles);
+        try {
+            Map<Identifier, DebugScreenEntryStatus> defaultStatuses = PROFILES.get(DebugScreenProfile.DEFAULT);
+            if (defaultStatuses == null) {
+                Quicify.LOGGER.warn("No default debug screen profile found, QUIC F3 entry will not appear");
+                return;
+            }
+            Identifier quicEntry = Identifier.fromNamespaceAndPath(Quicify.MOD_ID, "quic");
+            ENTRIES_BY_ID.put(quicEntry, new DebugEntryQuic());
+            Map<Identifier, DebugScreenEntryStatus> defaultProfile = new LinkedHashMap<>(defaultStatuses);
+            defaultProfile.put(quicEntry, DebugScreenEntryStatus.IN_OVERLAY);
+            Map<DebugScreenProfile, Map<Identifier, DebugScreenEntryStatus>> profiles = new LinkedHashMap<>(PROFILES);
+            profiles.put(DebugScreenProfile.DEFAULT, Map.copyOf(defaultProfile));
+            PROFILES = Map.copyOf(profiles);
+        } catch (Throwable t) {
+            Quicify.LOGGER.warn("Failed to register QUIC debug screen entry, F3 entry will not appear", t);
+        }
     }
 }

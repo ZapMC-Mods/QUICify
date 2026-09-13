@@ -19,7 +19,7 @@ class StreamMeterTest {
     void feedsTheVanillaBandwidthMonitorWithWireBytes() {
         LocalSampleLogger logger = new LocalSampleLogger(1);
         BandwidthDebugMonitor monitor = new BandwidthDebugMonitor(logger);
-        MuxStats stats = new MuxStats(monitor);
+        MuxStats stats = new MuxStats(monitor::onReceive);
         EmbeddedChannel channel = new EmbeddedChannel(new StreamMeter(stats, PacketCategory.WORLD));
         try {
             channel.writeInbound(Unpooled.wrappedBuffer(new byte[400]));

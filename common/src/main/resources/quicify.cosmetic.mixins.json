@@ -4,7 +4,8 @@
   "package": "zapmc.quicify.mixin",
   "compatibilityLevel": "JAVA_25",
   "mixins": [
-    "PlayerListMixin"
+    "PlayerListMixin",
+    "ServerCommonPacketListenerImplMixin"
   ],
   "injectors": {
     "defaultRequire": 0

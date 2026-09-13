@@ -35,6 +35,11 @@ public class QuicifyConfig extends Config {
     public ValidatedCondition<Boolean> multiplexing = new ValidatedBoolean(true)
             .toCondition(enabled, () -> false);
 
+    @Comment("Send sounds, particles and animations as unreliable QUIC datagrams so a lost one is never retransmitted or blocking")
+    @RequiresAction(action = Action.RESTART)
+    public ValidatedCondition<Boolean> datagrams = new ValidatedBoolean(true)
+            .toCondition(enabled, () -> false);
+
     @Comment("zstd compression level used when sending, higher trades CPU for a better ratio")
     @RequiresAction(action = Action.RELOG)
     public ValidatedCondition<Integer> compressionLevel = new ValidatedInt(3, new IntRange(1, 22), ValidatedNumber.WidgetType.TEXTBOX)

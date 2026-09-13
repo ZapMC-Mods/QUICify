@@ -40,6 +40,14 @@ public final class DebugEntryQuic implements DebugScreenEntry {
 
     private final long[] rxRate = new long[CATEGORIES.length];
 
+    private long lastDgramTx;
+
+    private long lastDgramRx;
+
+    private long dgramTxRate;
+
+    private long dgramRxRate;
+
     private @Nullable MuxStats sampled;
 
     private long sampledAt;
@@ -71,6 +79,9 @@ public final class DebugEntryQuic implements DebugScreenEntry {
                 }
                 lines.add(row(stats, category));
             }
+            if (session != null) {
+                lines.add(String.format(Locale.ROOT, "DGRAM #-, %d tx, %d rx", dgramTxRate, dgramRxRate));
+            }
         }
         displayer.addToGroup(GROUP, lines);
     }
@@ -92,7 +103,7 @@ public final class DebugEntryQuic implements DebugScreenEntry {
         long sent = sampler.sent();
         double loss = sent == 0L ? 0.0 : sampler.lost() * 100.0 / sent;
         return Component.translatable("quicify.debug.path",
-                String.format(Locale.ROOT, "%3d", Math.round(sampler.rttNanos() / 1_000_000.0)),
+                String.format(Locale.ROOT, "%3d", sampler.rttMillis()),
                 String.format(Locale.ROOT, "%4d", sampler.cwnd() / 1024L),
                 String.format(Locale.ROOT, "%4.1f", loss)).getString();
     }
@@ -115,6 +126,10 @@ public final class DebugEntryQuic implements DebugScreenEntry {
                 txRate[i] = 0L;
                 rxRate[i] = 0L;
             }
+            lastDgramTx = stats.datagramTx();
+            lastDgramRx = stats.datagramRx();
+            dgramTxRate = 0L;
+            dgramRxRate = 0L;
             return;
         }
         long elapsed = now - sampledAt;
@@ -130,5 +145,11 @@ public final class DebugEntryQuic implements DebugScreenEntry {
             lastTx[i] = tx;
             lastRx[i] = rx;
         }
+        long dgramTx = stats.datagramTx();
+        long dgramRx = stats.datagramRx();
+        dgramTxRate = (dgramTx - lastDgramTx) * 1000L / elapsed;
+        dgramRxRate = (dgramRx - lastDgramRx) * 1000L / elapsed;
+        lastDgramTx = dgramTx;
+        lastDgramRx = dgramRx;
     }
 }

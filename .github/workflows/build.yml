@@ -13,7 +13,7 @@ concurrency:
   cancel-in-progress: false
 
 env:
-  MODULES: fabric neoforge
+  MODULES: fabric neoforge velocity
 
 jobs:
   release:
