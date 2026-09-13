@@ -310,7 +310,6 @@ public final class QuicClientConnector {
             ChannelPipeline pipeline = ctx.pipeline();
             Connection.configureSerialization(pipeline, PacketFlow.CLIENTBOUND, false, monitor);
             connection.configurePacketHandler(pipeline);
-            pipelineInstalled.set(true);
             if (ctx.channel().parent() instanceof QuicChannel quicChannel && ctx.channel() instanceof QuicStreamChannel master) {
                 try {
                     QuicMux.install(quicChannel, master, true, monitor);
@@ -322,6 +321,13 @@ public final class QuicClientConnector {
                 @Override
                 public void channelActive(ChannelHandlerContext ctx) throws Exception {
                     super.channelActive(ctx);
+                    // Only report the pipeline as installed once the stream is actually active: this is the
+                    // point after which the caller can no longer safely retry over TCP, since it's the earliest
+                    // moment traffic could start flowing on this stream. Setting it earlier (e.g. as soon as the
+                    // handlers are wired up in handlerAdded) could mark a TCP fallback as illegal even when the
+                    // stream never activated within the connect deadline, wrongly turning a recoverable timeout
+                    // into a hard connection failure.
+                    pipelineInstalled.set(true);
                     activated.countDown();
                 }
             });
