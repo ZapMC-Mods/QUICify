@@ -141,6 +141,11 @@ public final class SecondaryStreams {
 
         @Override
         public void channelRead(ChannelHandlerContext ctx, Object msg) {
+            if (msg instanceof ByteBuf buf && !session.accountInbound(buf.readableBytes())) {
+                ReferenceCountUtil.release(msg);
+                session.fail("secondary stream " + category + " exceeded the packet rate limit");
+                return;
+            }
             ChannelHandlerContext splitter = injectionPoint();
             if (splitter == null) {
                 ReferenceCountUtil.release(msg);

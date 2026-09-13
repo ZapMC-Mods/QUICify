@@ -1,6 +1,7 @@
 package zapmc.quicify.velocity;
 
 import com.velocitypowered.proxy.network.Connections;
+import com.velocitypowered.proxy.network.limiter.PacketLimiter;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.quic.QuicChannel;
 import io.netty.handler.codec.quic.QuicStreamChannel;
@@ -37,6 +38,14 @@ public final class VelocityMux {
         }
 
         QuicMuxSession session = new QuicMuxSession(quicChannel, master, false, stats, Connections.FRAME_DECODER);
+
+        PacketLimiter packetLimiter = master.attr(VelocityStreamHandler.PACKET_LIMITER).get();
+        if (packetLimiter != null) {
+            // Secondary streams re-inject frames past the master's frame decoder, so its own
+            // packet-limiter check never runs on them. Route their frames through the same
+            // limiter here so packets-per-second/bytes actually cover all QUICify traffic.
+            session.setInboundLimiter(packetLimiter::account);
+        }
 
         pipeline.addAfter(StreamMeter.NAME, FrameRouter.NAME,
                 new FrameRouter(session, FrameRouting.outbound(table, connection)));

@@ -18,6 +18,7 @@ import zapmc.quicify.quic.zstd.ZstdParams;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
+import java.util.function.IntPredicate;
 
 public final class QuicMuxSession {
 
@@ -62,6 +63,8 @@ public final class QuicMuxSession {
     private @Nullable Runnable drainListener;
 
     private @Nullable ChannelHandlerContext routerContext;
+
+    private @Nullable IntPredicate inboundLimiter;
 
     public QuicMuxSession(QuicChannel quicChannel, QuicStreamChannel master, boolean clientSide, MuxStats stats, String injectionPoint) {
         this.injectionPoint = injectionPoint;
@@ -123,6 +126,25 @@ public final class QuicMuxSession {
 
     public String injectionPoint() {
         return injectionPoint;
+    }
+
+    /**
+     * Wires the master connection's packet-rate limiter (e.g. Velocity's {@code packets-per-second})
+     * into this session, so that frames re-injected from secondary streams are accounted against the
+     * same limiter as frames arriving on the master. Without this, a peer could flood the proxy through
+     * secondary streams while the limiter only ever sees master-stream traffic.
+     */
+    public void setInboundLimiter(@Nullable IntPredicate inboundLimiter) {
+        this.inboundLimiter = inboundLimiter;
+    }
+
+    /**
+     * Accounts {@code bytes} worth of a secondary-stream frame against the inbound limiter, mirroring
+     * the check the master's frame decoder performs on its own traffic. Returns {@code false} when the
+     * limiter is configured and has been exceeded; with no limiter configured, everything is allowed.
+     */
+    boolean accountInbound(int bytes) {
+        return inboundLimiter == null || inboundLimiter.test(bytes);
     }
 
     public MuxStats stats() {

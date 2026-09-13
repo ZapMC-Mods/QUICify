@@ -5,6 +5,7 @@ import com.velocitypowered.proxy.config.VelocityConfiguration;
 import com.velocitypowered.proxy.connection.MinecraftConnection;
 import com.velocitypowered.proxy.connection.client.HandshakeSessionHandler;
 import com.velocitypowered.proxy.network.Connections;
+import com.velocitypowered.proxy.network.limiter.PacketLimiter;
 import com.velocitypowered.proxy.network.limiter.SimpleBytesPerSecondLimiter;
 import com.velocitypowered.proxy.protocol.ProtocolUtils;
 import com.velocitypowered.proxy.protocol.StateRegistry;
@@ -15,6 +16,7 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelPipeline;
+import io.netty.util.AttributeKey;
 import io.netty.handler.codec.quic.QuicChannel;
 import io.netty.handler.codec.quic.QuicStreamChannel;
 import io.netty.handler.timeout.ReadTimeoutHandler;
@@ -27,6 +29,13 @@ import java.util.concurrent.TimeUnit;
 
 @ChannelHandler.Sharable
 public final class VelocityStreamHandler extends ChannelInboundHandlerAdapter {
+
+    /**
+     * Holds the master connection's {@link PacketLimiter} (if {@code packets-per-second} or
+     * {@code packet-limiter-bytes} is enabled) so {@link VelocityMux} can account secondary-stream
+     * traffic against the very same limiter once multiplexing is negotiated.
+     */
+    static final AttributeKey<PacketLimiter> PACKET_LIMITER = AttributeKey.valueOf("quicify:packet_limiter");
 
     private final VelocityServer server;
 
@@ -69,8 +78,9 @@ public final class VelocityStreamHandler extends ChannelInboundHandlerAdapter {
 
         VelocityConfiguration.PacketLimiterConfig limiter = configuration.getPacketLimiterConfig();
         if (limiter.interval() > 0 && (limiter.bytes() > 0 || limiter.pps() > 0)) {
-            pipeline.get(MinecraftVarintFrameDecoder.class).setPacketLimiter(
-                    new SimpleBytesPerSecondLimiter(limiter.pps(), limiter.bytes(), limiter.interval()));
+            PacketLimiter packetLimiter = new SimpleBytesPerSecondLimiter(limiter.pps(), limiter.bytes(), limiter.interval());
+            pipeline.get(MinecraftVarintFrameDecoder.class).setPacketLimiter(packetLimiter);
+            pipeline.channel().attr(PACKET_LIMITER).set(packetLimiter);
         }
 
         PublicKey certificateKey = certificates.certificate().getPublicKey();
