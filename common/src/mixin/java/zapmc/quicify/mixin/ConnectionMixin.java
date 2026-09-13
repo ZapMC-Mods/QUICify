@@ -29,22 +29,19 @@ public abstract class ConnectionMixin implements QuicifyConnection {
     @Shadow
     @Nullable
     private BandwidthDebugMonitor bandwidthDebugMonitor;
+    @Unique
+    @Nullable
+    private volatile PublicKey quicify$localCertificateKey;
+    @Unique
+    private volatile byte @Nullable [] quicify$peerCertificateKey;
+    @Unique
+    @Nullable
+    private volatile QuicChannel quicify$quicChannel;
 
     @Override
     public @Nullable BandwidthDebugMonitor quicify$bandwidthDebugMonitor() {
         return bandwidthDebugMonitor;
     }
-
-    @Unique
-    @Nullable
-    private volatile PublicKey quicify$localCertificateKey;
-
-    @Unique
-    private volatile byte @Nullable [] quicify$peerCertificateKey;
-
-    @Unique
-    @Nullable
-    private volatile QuicChannel quicify$quicChannel;
 
     @Override
     public @Nullable QuicChannel quicify$quicChannel() {

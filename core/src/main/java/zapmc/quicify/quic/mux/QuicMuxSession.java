@@ -128,21 +128,10 @@ public final class QuicMuxSession {
         return injectionPoint;
     }
 
-    /**
-     * Wires the master connection's packet-rate limiter (e.g. Velocity's {@code packets-per-second})
-     * into this session, so that frames re-injected from secondary streams are accounted against the
-     * same limiter as frames arriving on the master. Without this, a peer could flood the proxy through
-     * secondary streams while the limiter only ever sees master-stream traffic.
-     */
     public void setInboundLimiter(@Nullable IntPredicate inboundLimiter) {
         this.inboundLimiter = inboundLimiter;
     }
 
-    /**
-     * Accounts {@code bytes} worth of a secondary-stream frame against the inbound limiter, mirroring
-     * the check the master's frame decoder performs on its own traffic. Returns {@code false} when the
-     * limiter is configured and has been exceeded; with no limiter configured, everything is allowed.
-     */
     boolean accountInbound(int bytes) {
         return inboundLimiter == null || inboundLimiter.test(bytes);
     }
@@ -159,21 +148,10 @@ public final class QuicMuxSession {
         return state == State.ACTIVE;
     }
 
-    /**
-     * True while secondary streams are meant to be alive: fully negotiated ({@code ACTIVE}) or still
-     * being established for an upcoming barrier ({@code ARMED}). In every other state a secondary
-     * going away is either expected (drain) or already accounted for (disable, close).
-     */
     public boolean multiplexing() {
         return state == State.ACTIVE || state == State.ARMED;
     }
 
-    /**
-     * True when {@code stream} is still the secondary this session routes {@code category} on.
-     * {@link #completeDrain()} and {@link #disable()} detach streams before closing them, so a late
-     * {@code channelInactive} from a stream that is no longer registered is a deliberate teardown
-     * rather than an unexpected death.
-     */
     boolean isCurrentSecondary(PacketCategory category, QuicStreamChannel stream) {
         return secondaries[category.secondaryIndex()] == stream;
     }

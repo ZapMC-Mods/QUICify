@@ -16,10 +16,10 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelPipeline;
-import io.netty.util.AttributeKey;
 import io.netty.handler.codec.quic.QuicChannel;
 import io.netty.handler.codec.quic.QuicStreamChannel;
 import io.netty.handler.timeout.ReadTimeoutHandler;
+import io.netty.util.AttributeKey;
 import zapmc.quicify.Quicify;
 import zapmc.quicify.cert.QuicCertManager;
 import zapmc.quicify.quic.mux.MuxStreams;
@@ -30,11 +30,6 @@ import java.util.concurrent.TimeUnit;
 @ChannelHandler.Sharable
 public final class VelocityStreamHandler extends ChannelInboundHandlerAdapter {
 
-    /**
-     * Holds the master connection's {@link PacketLimiter} (if {@code packets-per-second} or
-     * {@code packet-limiter-bytes} is enabled) so {@link VelocityMux} can account secondary-stream
-     * traffic against the very same limiter once multiplexing is negotiated.
-     */
     static final AttributeKey<PacketLimiter> PACKET_LIMITER = AttributeKey.valueOf("quicify:packet_limiter");
 
     private final VelocityServer server;

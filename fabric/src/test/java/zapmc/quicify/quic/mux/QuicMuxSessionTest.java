@@ -31,6 +31,13 @@ class QuicMuxSessionTest {
 
     private QuicMuxSession session;
 
+    private static ChannelHandler streamMerger(QuicMuxSession session, PacketCategory category, StubStream stream) throws Exception {
+        Class<?> mergerClass = Class.forName(SecondaryStreams.class.getName() + "$StreamMerger");
+        Constructor<?> constructor = mergerClass.getDeclaredConstructor(QuicMuxSession.class, PacketCategory.class, QuicStreamChannel.class);
+        constructor.setAccessible(true);
+        return (ChannelHandler) constructor.newInstance(session, category, stream.handle);
+    }
+
     @BeforeEach
     void setUp() {
         parent = new EmbeddedChannel();
@@ -79,18 +86,6 @@ class QuicMuxSessionTest {
 
     private ChannelPromise promise() {
         return master.channel.newPromise();
-    }
-
-    /**
-     * Instantiates the real (package-private, nested) {@code SecondaryStreams.StreamMerger} handler so tests can
-     * drive its actual {@code channelInactive} through the pipeline instead of poking {@code QuicMuxSession}
-     * directly, which would bypass the very routing this exercises.
-     */
-    private static ChannelHandler streamMerger(QuicMuxSession session, PacketCategory category, StubStream stream) throws Exception {
-        Class<?> mergerClass = Class.forName(SecondaryStreams.class.getName() + "$StreamMerger");
-        Constructor<?> constructor = mergerClass.getDeclaredConstructor(QuicMuxSession.class, PacketCategory.class, QuicStreamChannel.class);
-        constructor.setAccessible(true);
-        return (ChannelHandler) constructor.newInstance(session, category, stream.handle);
     }
 
     @Test

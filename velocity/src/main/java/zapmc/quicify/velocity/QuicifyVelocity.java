@@ -92,8 +92,7 @@ public final class QuicifyVelocity {
         int quicPort = configuredPort == 0 ? event.getAddress().getPort() : configuredPort;
         try {
             QuicDatagramTransport datagramTransport = QuicDatagramTransport.select(true);
-            transport.start(new InetSocketAddress(event.getAddress().getAddress(), quicPort),
-                    new VelocityStreamHandler(server, certificates), datagramTransport);
+            transport.start(new InetSocketAddress(event.getAddress().getAddress(), quicPort), new VelocityStreamHandler(server, certificates), datagramTransport);
             QuicServerState.publish(quicPort);
             Quicify.LOGGER.info("QUIC listener started on port {} (UDP, {} transport)", quicPort, datagramTransport);
             if (QuicifyConfigs.verbose()) {

@@ -29,13 +29,9 @@ public final class VelocityInternals {
         return (LoginInboundConnection) field.get(handler);
     }
 
-    public static MinecraftSessionHandler authSessionHandler(VelocityServer server, LoginInboundConnection inbound,
-                                                             GameProfile profile, boolean onlineMode, String serverId)
-            throws ReflectiveOperationException {
-        Class<?> type = Class.forName("com.velocitypowered.proxy.connection.client.AuthSessionHandler",
-                true, VelocityServer.class.getClassLoader());
-        Constructor<?> constructor = type.getDeclaredConstructor(VelocityServer.class, LoginInboundConnection.class,
-                GameProfile.class, boolean.class, String.class);
+    public static MinecraftSessionHandler authSessionHandler(VelocityServer server, LoginInboundConnection inbound, GameProfile profile, boolean onlineMode, String serverId) throws ReflectiveOperationException {
+        Class<?> type = Class.forName("com.velocitypowered.proxy.connection.client.AuthSessionHandler", true, VelocityServer.class.getClassLoader());
+        Constructor<?> constructor = type.getDeclaredConstructor(VelocityServer.class, LoginInboundConnection.class, GameProfile.class, boolean.class, String.class);
         constructor.setAccessible(true);
         return (MinecraftSessionHandler) constructor.newInstance(server, inbound, profile, onlineMode, serverId);
     }

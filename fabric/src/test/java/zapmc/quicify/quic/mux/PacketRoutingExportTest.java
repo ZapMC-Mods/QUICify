@@ -42,8 +42,7 @@ class PacketRoutingExportTest {
 
     @Test
     void theCommittedTableMatchesTheRoutingMap() throws Exception {
-        assertEquals(PacketRoutingExporter.export(), committed(),
-                "the routing table is out of date, run :fabric:generatePacketRouting");
+        assertEquals(PacketRoutingExporter.export(), committed(), "the routing table is out of date, run :fabric:generatePacketRouting");
     }
 
     @Test

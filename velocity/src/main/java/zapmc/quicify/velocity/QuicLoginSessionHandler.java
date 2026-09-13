@@ -25,8 +25,7 @@ import java.security.MessageDigest;
 
 public final class QuicLoginSessionHandler implements MinecraftSessionHandler {
 
-    private static final String HAS_JOINED_URL = System.getProperty("mojang.sessionserver",
-            "https://sessionserver.mojang.com/session/minecraft/hasJoined").concat("?username=%s&serverId=%s");
+    private static final String HAS_JOINED_URL = System.getProperty("mojang.sessionserver", "https://sessionserver.mojang.com/session/minecraft/hasJoined").concat("?username=%s&serverId=%s");
 
     private static final int AES_KEY_LENGTH = 16;
 
@@ -42,16 +41,14 @@ public final class QuicLoginSessionHandler implements MinecraftSessionHandler {
 
     private boolean receivedEncryptionResponse;
 
-    private QuicLoginSessionHandler(VelocityServer server, QuicMinecraftConnection connection,
-                                    MinecraftSessionHandler delegate, LoginInboundConnection inbound) {
+    private QuicLoginSessionHandler(VelocityServer server, QuicMinecraftConnection connection, MinecraftSessionHandler delegate, LoginInboundConnection inbound) {
         this.server = server;
         this.connection = connection;
         this.delegate = delegate;
         this.inbound = inbound;
     }
 
-    public static MinecraftSessionHandler wrap(VelocityServer server, QuicMinecraftConnection connection,
-                                               MinecraftSessionHandler delegate) {
+    public static MinecraftSessionHandler wrap(VelocityServer server, QuicMinecraftConnection connection, MinecraftSessionHandler delegate) {
         try {
             LoginInboundConnection inbound = VelocityInternals.loginInboundConnection(delegate);
             return new QuicLoginSessionHandler(server, connection, delegate, inbound);
@@ -132,8 +129,7 @@ public final class QuicLoginSessionHandler implements MinecraftSessionHandler {
                     } else if (response.statusCode() == 204) {
                         inbound.disconnect(Component.translatable("velocity.error.online-mode-only", NamedTextColor.RED));
                     } else {
-                        Quicify.LOGGER.error("Got an unexpected error code {} whilst contacting Mojang to log in {} ({})",
-                                response.statusCode(), username, playerIp);
+                        Quicify.LOGGER.error("Got an unexpected error code {} whilst contacting Mojang to log in {} ({})", response.statusCode(), username, playerIp);
                         inbound.disconnect(Component.translatable("multiplayer.disconnect.authservers_down"));
                     }
                 }, connection.eventLoop())
@@ -142,8 +138,7 @@ public final class QuicLoginSessionHandler implements MinecraftSessionHandler {
 
     private void succeed(GameProfile profile, String serverId) {
         try {
-            connection.setActiveSessionHandler(StateRegistry.LOGIN,
-                    VelocityInternals.authSessionHandler(server, inbound, profile, true, serverId));
+            connection.setActiveSessionHandler(StateRegistry.LOGIN, VelocityInternals.authSessionHandler(server, inbound, profile, true, serverId));
         } catch (ReflectiveOperationException | RuntimeException e) {
             Quicify.LOGGER.error("QUIC login could not hand over to the auth stage", e);
             connection.close(true);

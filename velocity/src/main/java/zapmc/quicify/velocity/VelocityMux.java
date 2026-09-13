@@ -41,16 +41,11 @@ public final class VelocityMux {
 
         PacketLimiter packetLimiter = master.attr(VelocityStreamHandler.PACKET_LIMITER).get();
         if (packetLimiter != null) {
-            // Secondary streams re-inject frames past the master's frame decoder, so its own
-            // packet-limiter check never runs on them. Route their frames through the same
-            // limiter here so packets-per-second/bytes actually cover all QUICify traffic.
             session.setInboundLimiter(packetLimiter::account);
         }
 
-        pipeline.addAfter(StreamMeter.NAME, FrameRouter.NAME,
-                new FrameRouter(session, FrameRouting.outbound(table, connection)));
-        pipeline.addAfter(FrameCounter.NAME, BarrierGate.NAME,
-                new BarrierGate(session, FrameRouting.inbound(table, connection)::barrier));
+        pipeline.addAfter(StreamMeter.NAME, FrameRouter.NAME, new FrameRouter(session, FrameRouting.outbound(table, connection)));
+        pipeline.addAfter(FrameCounter.NAME, BarrierGate.NAME, new BarrierGate(session, FrameRouting.inbound(table, connection)::barrier));
 
         MuxStreams.whenActive(master, () -> {
             quicChannel.attr(QuicMuxSession.KEY).set(session);

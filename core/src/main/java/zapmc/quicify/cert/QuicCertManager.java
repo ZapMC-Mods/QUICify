@@ -71,13 +71,6 @@ public final class QuicCertManager {
         return new QuicCertManager(privateKey, certificate);
     }
 
-    /**
-     * Confirms the private key actually corresponds to the certificate's public key by signing a
-     * throwaway probe with one and verifying it with the other. A crash (or a racing instance)
-     * between the two {@code Files.move} calls in {@link #generateAndStore} can leave a new key
-     * next to an old certificate; both files are individually well-formed PEM, so without this
-     * check {@link #load} would happily accept a pair that QUIC can never actually use.
-     */
     private static void requireMatchingPair(PrivateKey privateKey, X509Certificate certificate) throws GeneralSecurityException {
         Signature signer = Signature.getInstance("SHA256withECDSA");
         signer.initSign(privateKey);
@@ -101,9 +94,6 @@ public final class QuicCertManager {
         Path keyTmp = prepareTemp(keyPath, pemEncode("PRIVATE KEY", keyPair.getPrivate().getEncoded()), true);
         Path certTmp = prepareTemp(certPath, pemEncode("CERTIFICATE", certificate.getEncoded()), false);
         try {
-            // Both temp files are already fully written above; the two moves below run back to
-            // back with no I/O in between, narrowing the window where a crash could leave a new
-            // key on disk next to an old (mismatched) certificate, or vice versa.
             moveIntoPlace(keyTmp, keyPath);
             moveIntoPlace(certTmp, certPath);
         } finally {
@@ -122,11 +112,6 @@ public final class QuicCertManager {
         return tmp;
     }
 
-    /**
-     * Removes a temp file that never made it into place. A failure here is deliberately swallowed:
-     * a leftover {@code .tmp} is harmless, while letting the delete throw out of the {@code finally}
-     * would mask whichever of the two moves actually failed.
-     */
     private static void deleteQuietly(Path tmp) {
         try {
             Files.deleteIfExists(tmp);

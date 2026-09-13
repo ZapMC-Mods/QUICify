@@ -22,13 +22,12 @@ import java.util.Map;
 public abstract class DebugScreenEntriesMixin {
 
     @Shadow
-    @Final
-    private static Map<Identifier, DebugScreenEntry> ENTRIES_BY_ID;
-
-    @Shadow
     @Mutable
     @Final
     public static Map<DebugScreenProfile, Map<Identifier, DebugScreenEntryStatus>> PROFILES;
+    @Shadow
+    @Final
+    private static Map<Identifier, DebugScreenEntry> ENTRIES_BY_ID;
 
     @Inject(method = "<clinit>", at = @At("RETURN"))
     private static void quicify$registerQuicEntry(CallbackInfo ci) {

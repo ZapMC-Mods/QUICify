@@ -25,6 +25,27 @@ class QuicCertManagerTest {
 
     private static final String CERT_FILE = "quic-cert.pem";
 
+    private static byte[] readPrivateKey(Path directory) throws Exception {
+        String pem = Files.readString(directory.resolve(KEY_FILE), StandardCharsets.US_ASCII)
+                .replace("-----BEGIN PRIVATE KEY-----", "")
+                .replace("-----END PRIVATE KEY-----", "")
+                .replaceAll("\\s", "");
+        java.security.KeyFactory keyFactory = java.security.KeyFactory.getInstance("EC");
+        return keyFactory.generatePrivate(new java.security.spec.PKCS8EncodedKeySpec(java.util.Base64.getDecoder().decode(pem))).getEncoded();
+    }
+
+    private static void assertMatchingPair(QuicCertManager identity) throws Exception {
+        java.security.Signature signer = java.security.Signature.getInstance("SHA256withECDSA");
+        signer.initSign(identity.privateKey());
+        signer.update("pairing-check".getBytes(StandardCharsets.US_ASCII));
+        byte[] signature = signer.sign();
+
+        java.security.Signature verifier = java.security.Signature.getInstance("SHA256withECDSA");
+        verifier.initVerify(identity.certificate().getPublicKey());
+        verifier.update("pairing-check".getBytes(StandardCharsets.US_ASCII));
+        assertTrue(verifier.verify(signature), "private key does not correspond to the certificate");
+    }
+
     @Test
     void writesBothFilesOnFirstStart(@TempDir Path directory) throws Exception {
         QuicCertManager identity = QuicCertManager.loadOrGenerate(directory);
@@ -115,9 +136,6 @@ class QuicCertManagerTest {
         Files.delete(directory.resolve(CERT_FILE));
         QuicCertManager second = QuicCertManager.loadOrGenerate(directory);
 
-        // Simulate a crash between the two Files.move calls in generateAndStore: the key on
-        // disk is left over from one generation while the certificate belongs to another. Both
-        // files are individually well-formed PEM, so only a correspondence check catches this.
         Files.writeString(directory.resolve(KEY_FILE), keyFromFirstGeneration, StandardCharsets.US_ASCII);
 
         QuicCertManager third = assertDoesNotThrow(() -> QuicCertManager.loadOrGenerate(directory));
@@ -126,26 +144,5 @@ class QuicCertManagerTest {
         assertMatchingPair(third);
         assertFalse(java.util.Arrays.equals(first.certificate().getEncoded(), third.certificate().getEncoded()));
         assertFalse(java.util.Arrays.equals(second.certificate().getEncoded(), third.certificate().getEncoded()));
-    }
-
-    private static byte[] readPrivateKey(Path directory) throws Exception {
-        String pem = Files.readString(directory.resolve(KEY_FILE), StandardCharsets.US_ASCII)
-                .replace("-----BEGIN PRIVATE KEY-----", "")
-                .replace("-----END PRIVATE KEY-----", "")
-                .replaceAll("\\s", "");
-        java.security.KeyFactory keyFactory = java.security.KeyFactory.getInstance("EC");
-        return keyFactory.generatePrivate(new java.security.spec.PKCS8EncodedKeySpec(java.util.Base64.getDecoder().decode(pem))).getEncoded();
-    }
-
-    private static void assertMatchingPair(QuicCertManager identity) throws Exception {
-        java.security.Signature signer = java.security.Signature.getInstance("SHA256withECDSA");
-        signer.initSign(identity.privateKey());
-        signer.update("pairing-check".getBytes(StandardCharsets.US_ASCII));
-        byte[] signature = signer.sign();
-
-        java.security.Signature verifier = java.security.Signature.getInstance("SHA256withECDSA");
-        verifier.initVerify(identity.certificate().getPublicKey());
-        verifier.update("pairing-check".getBytes(StandardCharsets.US_ASCII));
-        assertTrue(verifier.verify(signature), "private key does not correspond to the certificate");
     }
 }

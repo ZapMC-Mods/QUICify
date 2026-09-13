@@ -68,10 +68,8 @@ def probe = { String name, String main, String desc ->
     }
 }
 
-probe('quicStatusProbe', 'zapmc.quicify.quic.QuicStatusProbe',
-        'Performs a vanilla server-status ping over QUIC against a running server')
-probe('quicLoginProbe', 'zapmc.quicify.quic.QuicLoginProbe',
-        'Runs the QUIC login auth path against a running server (online-mode)')
+probe('quicStatusProbe', 'zapmc.quicify.quic.QuicStatusProbe', 'Performs a vanilla server-status ping over QUIC against a running server')
+probe('quicLoginProbe', 'zapmc.quicify.quic.QuicLoginProbe', 'Runs the QUIC login auth path against a running server (online-mode)')
 
 tasks.register('generatePacketRouting', JavaExec) {
     group = 'quicify'

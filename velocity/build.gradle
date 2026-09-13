@@ -125,8 +125,7 @@ tasks.register('runProxy', JavaExec) {
         File dir = runDir.get().asFile
         File plugins = new File(dir, 'plugins')
         plugins.mkdirs()
-        plugins.listFiles({ File f -> f.name.startsWith('quicify-velocity') } as FileFilter)
-                .each { it.delete() }
+        plugins.listFiles({ File f -> f.name.startsWith('quicify-velocity') } as FileFilter).each { it.delete() }
         File built = tasks.named('jar').get().archiveFile.get().asFile
         new File(plugins, built.name).bytes = built.bytes
 

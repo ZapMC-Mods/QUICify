@@ -89,10 +89,6 @@ public final class QuicServerTransport {
             EventLoopGroup boundGroup = group;
             channel.closeFuture().addListener(_ -> {
                 boundGroup.shutdownGracefully(0, 0, TimeUnit.MILLISECONDS);
-                // Netty completes closeFuture before the close promise, and notifies here inline on
-                // the event loop. stop() awaits that promise while holding this object's monitor, so
-                // taking the lock here would deadlock it; the fields are volatile and the identity
-                // checks keep a concurrent start() from being clobbered.
                 if (datagramChannel == channel) {
                     datagramChannel = null;
                     draining = false;
