@@ -107,8 +107,8 @@ public final class QuicCertManager {
             moveIntoPlace(keyTmp, keyPath);
             moveIntoPlace(certTmp, certPath);
         } finally {
-            Files.deleteIfExists(keyTmp);
-            Files.deleteIfExists(certTmp);
+            deleteQuietly(keyTmp);
+            deleteQuietly(certTmp);
         }
         return new QuicCertManager(keyPair.getPrivate(), certificate);
     }
@@ -120,6 +120,19 @@ public final class QuicCertManager {
             restrictToOwner(tmp);
         }
         return tmp;
+    }
+
+    /**
+     * Removes a temp file that never made it into place. A failure here is deliberately swallowed:
+     * a leftover {@code .tmp} is harmless, while letting the delete throw out of the {@code finally}
+     * would mask whichever of the two moves actually failed.
+     */
+    private static void deleteQuietly(Path tmp) {
+        try {
+            Files.deleteIfExists(tmp);
+        } catch (IOException e) {
+            Quicify.LOGGER.debug("Could not remove temporary file {}", tmp, e);
+        }
     }
 
     private static void moveIntoPlace(Path tmp, Path path) throws IOException {
