@@ -40,6 +40,8 @@ public final class QuicLoginSessionHandler implements MinecraftSessionHandler {
 
     private @Nullable String username;
 
+    private boolean receivedEncryptionResponse;
+
     private QuicLoginSessionHandler(VelocityServer server, QuicMinecraftConnection connection,
                                     MinecraftSessionHandler delegate, LoginInboundConnection inbound) {
         this.server = server;
@@ -72,6 +74,13 @@ public final class QuicLoginSessionHandler implements MinecraftSessionHandler {
     }
 
     public void handle(QuicEncryptionResponsePacket packet) {
+        if (receivedEncryptionResponse) {
+            Quicify.LOGGER.warn("QUIC login received a second encryption response, closing the connection");
+            connection.close(true);
+            return;
+        }
+        receivedEncryptionResponse = true;
+
         String name = username;
         EncryptionRequestRewriter rewriter = EncryptionRequestRewriter.of(connection.getChannel());
         byte[] challenge = rewriter == null ? null : rewriter.challenge();
